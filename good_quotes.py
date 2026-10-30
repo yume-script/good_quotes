@@ -2,7 +2,7 @@
 from flask import has_request_context, request, session
 from plugins.metadata.base import BaseMetadataProvider
 
-PLUGIN_VERSION = '1.2.0'
+PLUGIN_VERSION = '1.2.1'
 SESSIONS = ('general', 'adult', 'audiobook', 'video')
 
 
@@ -77,7 +77,7 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
                     raise ValueError('태그 형식을 확인해 주세요.')
                 return {'success': True, 'background': MediaService(service).background(tags, force=context.get('force') is True)}
             if action_id == 'quotes_manage':
-                return {'success': True, 'providers': service.status()}
+                return {'success': True, 'providers': service.status(), 'backgrounds': MediaService(service).status()}
             return {'success': False, 'error': '지원하지 않는 글귀 작업입니다.'}
         except (ValueError, OSError, TypeError, RuntimeError):
             return {'success': False, 'error': '글귀 작업에 실패했습니다. 입력 형식·외부 서비스 상태를 확인해 주세요.'}
