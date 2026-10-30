@@ -36,9 +36,14 @@
 .gq-quote-sources>div::-webkit-scrollbar-button{display:none}
 .gq-quote-sources p{margin:0 0 6px}
 .gq-quote-sources p:last-child{margin-bottom:0}
-.gq-quote-weather{flex:none;margin:0 auto 0 0;padding:4px 10px;border-radius:999px;background:#10192366;color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;text-shadow:0 1px 3px #000c}
+.gq-quote-date{position:absolute;top:16px;right:20px;margin:0;padding:4px 10px;border-radius:999px;background:#10192366;color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;text-shadow:0 1px 3px #000c}
+.gq-quote-air{flex:none;margin:0;padding:4px 10px;border-radius:999px;background:#10192366;color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;text-shadow:0 1px 3px #000c}
+.gq-quote-air[data-grade=나쁨]{background:#b4530966}.gq-quote-air[data-grade=매우나쁨]{background:#b91c1c80}
+.gq-quote-continue{flex:0 1 auto;min-width:0;max-width:42%;margin:0 auto;padding:5px 14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid #ffffff40;border-radius:999px;background:#10192380;color:#fff;font:inherit;font-size:12px;cursor:pointer;text-shadow:0 1px 3px #000c}
+.gq-quote-continue:hover,.gq-quote-continue:focus-visible{background:#ffffff26}
+.gq-quote-weather{flex:none;margin:0;padding:4px 10px;border-radius:999px;background:#10192366;color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;text-shadow:0 1px 3px #000c}
 .gq-quote-status{flex:1;min-width:180px;margin:0;color:#eee3ca;font-size:10px;line-height:1.6}
 .gq-quote-status:empty{display:none}
 .gq-quote [hidden]{display:none!important}
-@media(max-width:700px){.gq-quote{--quote-font-scale:.8;height:380px;border-radius:12px}.gq-quote-content{padding:22px 16px 10px}.gq-quote-eyebrow{font-size:11px;letter-spacing:.8px;gap:6px 8px;padding:6px 10px}.gq-quote-footer{padding:0 12px 12px}.gq-quote-status{flex-basis:100%}.gq-quote-controls{gap:4px}.gq-quote-sources{--quote-popover-width:min(310px,84vw)}}
+@media(max-width:700px){.gq-quote{--quote-font-scale:.8;height:380px;border-radius:12px}.gq-quote-content{padding:22px 16px 10px}.gq-quote-eyebrow{font-size:11px;letter-spacing:.8px;gap:6px 8px;padding:6px 10px}.gq-quote-footer{padding:0 12px 12px;justify-content:center}.gq-quote-date{position:static;width:fit-content;margin:0 auto 8px}.gq-quote-continue{order:-1;flex-basis:100%;max-width:100%}.gq-quote-status{flex-basis:100%}.gq-quote-controls{gap:4px}.gq-quote-sources{--quote-popover-width:min(310px,84vw)}}
 @media(pointer:coarse){.gq-quote-controls button{min-width:40px;min-height:40px;height:40px}}

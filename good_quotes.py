@@ -2,7 +2,7 @@
 from flask import has_request_context, request, session
 from plugins.metadata.base import BaseMetadataProvider
 
-PLUGIN_VERSION = '1.5.1'
+PLUGIN_VERSION = '1.6.0'
 SESSIONS = ('general', 'adult', 'audiobook', 'video')
 
 try:
@@ -40,6 +40,36 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
         from .quotes import QuoteService
         return QuoteService(self.get_plugin_config(db_type, default={}) or {})
 
+    @staticmethod
+    def _enabled(config, key):
+        return config.get(key, True) in (True, 1, '1', 'true', 'on')
+
+    def _status_bar(self, db_type, config):
+        from .quote_almanac import solar_term
+        bar = {'show_date': self._enabled(config, 'date_display'), 'solar_term': solar_term(), 'continue': None}
+        if db_type in ('general', 'adult') and self._enabled(config, 'continue_display'):
+            bar['continue'] = self._continue_reading(db_type)
+        return bar
+
+    @staticmethod
+    def _continue_reading(db_type):
+        # 코어 홈의 '읽는 중'과 같은 기준: 등급 필터가 적용된 독서 기록 중 다 읽지 않은 가장 최근 책.
+        try:
+            from services.reading_history_service import ReadingHistoryService
+            history = ReadingHistoryService.get_history(db_type, user_id=session['user_id'],
+                                                        content_rating_max=session.get('content_rating_max', 18)) or []
+        except Exception:
+            return None
+        for book in history:
+            pages_read, total = int(book.get('pages_read') or 0), int(book.get('total_pages') or 0)
+            if book.get('is_completed', 0) == 1 or pages_read <= 0 or type(book.get('id')) is not int:
+                continue
+            percent = int(book.get('last_epub_percent') or 0) or (round(pages_read / total * 100) if total else 0)
+            return {'book_id': book['id'], 'title': str(book.get('series_alias') or book.get('title') or book.get('series_name') or '')[:200],
+                    'file_format': str(book.get('file_format') or ''), 'pages_read': pages_read, 'total_pages': total,
+                    'percent': max(1, min(99, percent)) if percent else 0}
+        return None
+
     def get_dashboard_data(self, db_type, limit=1):
         # 공용 데이터 라우트에 login_required가 없으므로 여기서 반드시 검사한다.
         if not has_request_context() or not session.get('user_id'):
@@ -51,7 +81,10 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
             return {'success': False, 'error': '접근할 수 없는 서재입니다.'}
         try:
             # 첫 화면은 외부 요청 없이 즉시 그리고, 글귀와 배경은 브라우저가 이어서 받는다.
-            return {'success': True, 'items': [self._service(db_type).card([], initial=True)]}
+            service = self._service(db_type)
+            card = service.card([], initial=True)
+            card['status_bar'] = self._status_bar(db_type, service.config)
+            return {'success': True, 'items': [card]}
         except (ValueError, OSError, RuntimeError):
             return {'success': False, 'error': '글귀 설정을 확인해 주세요.'}
 
@@ -90,7 +123,8 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
                 if weather and (weather_service.display_enabled() or media.selected() == 'weather'):
                     # 날씨는 30분마다 다시 확인한다. 바뀌면 날씨 연동 배경도 그때 새로 고른다.
                     background['refresh_after'] = min(background.get('refresh_after') or 1800, 1800)
-                return {'success': True, 'background': background,
+                from .quote_almanac import solar_term
+                return {'success': True, 'background': background, 'solar_term': solar_term(),
                         'weather': weather if weather_service.display_enabled() else None}
             if action_id == 'quotes_manage':
                 from .quote_weather import WeatherService
