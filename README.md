@@ -6,9 +6,10 @@ BookOasis 홈 화면에 **좋은 글귀**와 **배경 이미지**를 보여주�
 | 항목 | 내용 |
 | --- | --- |
 | 플러그인 ID | `good_quotes` |
-| 버전 | 1.1.0 |
+| 버전 | 1.2.0 |
 | 지원 세션 | 일반·성인 도서, 오디오북, 비디오 |
 | 외부 의존성 | 없음 (표준 라이브러리 + 코어 Flask) |
+| API 키 | 필요 없음 |
 | 라이선스 | GNU AGPL v3 (`LICENSE`) |
 
 ## 기능
@@ -17,7 +18,6 @@ BookOasis 홈 화면에 **좋은 글귀**와 **배경 이미지**를 보여주�
 - **배경 이미지** — API 키가 필요 없는 5곳(Bing 오늘의 이미지, Wikimedia Commons 오늘의 사진, Art Institute of Chicago, NASA APOD, Lorem Picsum) 중 하나를 고르거나 **5곳 무작위**(기본)로 섞어 씁니다. 그라데이션만 쓸 수도 있습니다. 배경은 1~24시간(기본 3시간)마다 바뀌고, 무작위 모드에서는 응답하지 않는 곳을 건너뜁니다.
 - **위젯 도구** — 다른 글귀, 언어 전환(`En` → `한` → `En.한`), 배경 변경, 출처 보기 버튼이 있습니다. 배경을 그라데이션으로 두면 배경 변경 버튼은 숨겨집니다.
 - **글꼴** — 한국어·영어·저자의 글꼴과 크기를 각각 고릅니다. 글꼴은 코어에 설치된 목록에서 고르며, 긴 문구는 카드 높이에 맞게 자동으로 줄입니다.
-- **DeepL 사전 번역 (선택)** — 영문 공급원 문구를 관리자가 미리 한국어로 번역해 저장합니다. 홈 화면에서는 번역 API를 호출하지 않습니다.
 
 ## 설치
 
@@ -30,8 +30,6 @@ plugins/metadata/good_quotes/
   quotes.py
   quote_http.py
   quote_media.py
-  quote_store.py
-  quote_translation.py
   VERSION
   dashboard.html
   dashboard.css
@@ -50,9 +48,8 @@ Detail Studio와 함께 설치해도 됩니다. 두 플러그인은 설정과 �
 
 ## 저장 위치
 
-- 영문 공급원 원문과 DeepL 번역은 `plugins/metadata/good_quotes/data/quotes.sqlite3`에 저장합니다. 처음 사용할 때 자동으로 만들어지므로 이 폴더에 쓰기 권한이 필요합니다. 업데이트할 때는 `data/` 폴더를 지우지 말고 그대로 두세요.
-- 배경 이미지 파일은 디스크에 저장하지 않습니다. URL과 출처만 서버 메모리에 보관합니다.
-- DeepL API 키는 코어의 플러그인 설정에만 저장하며 홈 화면 응답에는 포함하지 않습니다.
+- 디스크에는 아무것도 저장하지 않습니다. 받은 글귀·배경 URL·출처는 서버 메모리에만 잠시 보관하며, 코어를 다시 시작하면 새로 받습니다.
+- 코어 DB에는 공급원·배경·글꼴 같은 표시 설정만 저장합니다.
 
 ## 공급원과 이용 조건
 
@@ -61,7 +58,6 @@ Detail Studio와 함께 설치해도 됩니다. 두 플러그인은 설정과 �
 | Korean Advice API | 한국어 글귀·저자 | [LICENSE](https://github.com/gwongibeom/korean-advice-open-api/blob/main/LICENSE): 비상업적 무료 사용, 출처 표기 |
 | ZenQuotes | 영문 글귀 | [이용 조건](https://docs.zenquotes.io/terms-and-conditions/) |
 | PositiveQuotation | 영문 속담 | [API 문서](https://positivequotation.com/developers/public-domain-quotes-api) |
-| DeepL | 영문 → 한국어 사전 번역 | [API 안내](https://www.deepl.com/en/developers) |
 | Bing 오늘의 이미지 | 풍경 사진 배경 | 각 사진의 저작권자 소유 · 개인 배경화면 용도 |
 | Wikimedia Commons 오늘의 사진 | 엄선 사진 배경 | 사진마다 다른 자유 라이선스(CC BY-SA 등) · 출처 표시 |
 | Art Institute of Chicago | 공개 영역 명화 배경 | [CC0](https://www.artic.edu/open-access/open-access-images) · [API](https://api.artic.edu/docs/) |
@@ -75,4 +71,6 @@ ZenQuotes·PositiveQuotation은 설정에서 이용 조건 확인 스위치를 �
 [Detail Studio](https://github.com/colaiuta77/detail_studio)(AGPL-3.0)의 글귀 코드(`quotes.py`, `quote_*.py`)와 위젯·설정 UI를 가져와 다음을 바꿨습니다.
 
 - 단독 플러그인 `good_quotes`로 분리하고, 데일리 픽 선택 로직은 뺐습니다.
+- API 키가 필요한 기능(DeepL 사전 번역, Unsplash·Pexels 배경)과 전용 SQLite 저장소를 없앴습니다. 영문 글귀는 원문 그대로 표시합니다.
+- 배경을 키가 필요 없는 5곳(Bing·Wikimedia Commons·Art Institute of Chicago·NASA APOD·Lorem Picsum)으로 바꿨습니다.
 - 요청 헤더(`X-Good-Quotes`), CSS 클래스(`gq-`), 저장 키 이름을 바꿔 Detail Studio와 겹치지 않게 했습니다.

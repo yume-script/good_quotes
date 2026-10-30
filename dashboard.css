@@ -17,7 +17,6 @@
 .gq-quote-words blockquote{margin:0;font-family:var(--app-font-sans,inherit);font-size:calc(var(--quote-en-size) * var(--quote-font-scale) * var(--quote-fit));font-weight:650;line-height:1.25;letter-spacing:-.3px}
 .gq-quote-words [data-quote-ko]{margin:0;color:#f5f1e9;font-size:calc(var(--quote-font-size) * var(--quote-font-scale) * var(--quote-fit));line-height:1.3;word-break:keep-all;overflow-wrap:anywhere}
 .gq-quote-author{flex:none;width:fit-content;max-width:100%;margin:12px auto 0;padding:0 12px;border:0;background:none;color:#e5dbc8;font-size:min(var(--quote-author-size,15px),calc(var(--quote-smallest-body,32px) * var(--quote-font-scale) * var(--quote-fit) - 1px));line-height:1.3;overflow-wrap:anywhere}
-.gq-quote-translation{color:#e2dcd2;font-family:var(--app-font-sans,inherit);font-size:10px;line-height:1.2;white-space:nowrap;text-shadow:0 1px 3px #000e}
 .gq-quote a{color:#e5dcff;text-decoration:underline;text-underline-offset:3px}
 .gq-quote a:focus-visible{outline:2px solid #d9c8ff;outline-offset:3px}
 .gq-quote-footer{display:flex;flex:none;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:0 22px 14px}

@@ -2,7 +2,7 @@
 from flask import has_request_context, request, session
 from plugins.metadata.base import BaseMetadataProvider
 
-PLUGIN_VERSION = '1.1.0'
+PLUGIN_VERSION = '1.2.0'
 SESSIONS = ('general', 'adult', 'audiobook', 'video')
 
 
@@ -31,8 +31,7 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
 
     def _service(self, db_type):
         from .quotes import QuoteService
-        from .quote_store import QuoteStore
-        return QuoteService(QuoteStore(), self.get_plugin_config(db_type, default={}) or {})
+        return QuoteService(self.get_plugin_config(db_type, default={}) or {})
 
     def get_dashboard_data(self, db_type, limit=1):
         # 공용 데이터 라우트에 login_required가 없으므로 여기서 반드시 검사한다.
@@ -47,7 +46,7 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
             # 첫 화면은 외부 요청 없이 즉시 그리고, 글귀와 배경은 브라우저가 이어서 받는다.
             return {'success': True, 'items': [self._service(db_type).card([], initial=True)]}
         except (ValueError, OSError, RuntimeError):
-            return {'success': False, 'error': '글귀 설정이나 저장소를 확인해 주세요.'}
+            return {'success': False, 'error': '글귀 설정을 확인해 주세요.'}
 
     def run_context_menu_action(self, db_type, action_id, context):
         from urllib.parse import urlsplit
@@ -79,19 +78,6 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
                 return {'success': True, 'background': MediaService(service).background(tags, force=context.get('force') is True)}
             if action_id == 'quotes_manage':
                 return {'success': True, 'providers': service.status()}
-            if action_id in ('quotes_translation_status', 'quotes_translate'):
-                from .quote_translation import DeepLTranslation
-                from .quote_http import RemoteError
-                translator = DeepLTranslation(service)
-                try:
-                    if action_id == 'quotes_translation_status':
-                        preparation = service.prepare_translation_sources() if context.get('refresh_sources') is True else {}
-                        result = {**translator.summary(), **preparation}
-                    else:
-                        result = translator.translate(context.get('ids'))
-                except RemoteError as error:
-                    return {'success': False, 'error': str(error)}
-                return {'success': True, **result}
             return {'success': False, 'error': '지원하지 않는 글귀 작업입니다.'}
         except (ValueError, OSError, TypeError, RuntimeError):
-            return {'success': False, 'error': '글귀 작업에 실패했습니다. 입력 형식·저장소·외부 서비스 상태를 확인해 주세요.'}
+            return {'success': False, 'error': '글귀 작업에 실패했습니다. 입력 형식·외부 서비스 상태를 확인해 주세요.'}

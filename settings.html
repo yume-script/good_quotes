@@ -7,7 +7,7 @@
     <div class="gq-quote-provider-row"><label><input type="checkbox" role="switch" name="korean_enabled" checked> Korean Advice API</label><label>가중치 <input type="number" name="korean_weight" min="0" max="100" value="60"></label></div>
     <p>Korean Advice는 비상업적 이용이 무료이며 카드에 출처를 표시합니다. 상업적 이용은 권리자에게 문의하세요. <a href="https://github.com/gwongibeom/korean-advice-open-api/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">공식 라이선스</a></p>
     <div class="gq-quote-provider-row"><label><input type="checkbox" role="switch" name="zen_enabled"> ZenQuotes</label><label>가중치 <input type="number" name="zen_weight" min="0" max="100" value="35"></label></div>
-    <label class="gq-quote-confirm"><input type="checkbox" role="switch" name="zen_terms"> ZenQuotes의 앱 표시·원문과 번역 캐시 저장 이용 범위를 확인했습니다.</label>
+    <label class="gq-quote-confirm"><input type="checkbox" role="switch" name="zen_terms"> ZenQuotes의 앱 표시 이용 범위를 확인했습니다.</label>
     <div class="gq-quote-provider-row"><label><input type="checkbox" role="switch" name="positive_enabled"> PositiveQuotation</label><label>가중치 <input type="number" name="positive_weight" min="0" max="100" value="5"></label></div>
     <label class="gq-quote-confirm"><input type="checkbox" role="switch" name="positive_terms"> 공식 30개 속담 API의 국내 이용 범위와 원전 표시 조건을 확인했습니다.</label>
     <p><a href="https://docs.zenquotes.io/zenquotes-documentation/" target="_blank" rel="noopener noreferrer">ZenQuotes API 안내</a> · <a href="https://docs.zenquotes.io/terms-and-conditions/" target="_blank" rel="noopener noreferrer">약관</a> · <a href="https://positivequotation.com/developers/public-domain-quotes-api" target="_blank" rel="noopener noreferrer">PositiveQuotation 안내</a></p>
@@ -41,22 +41,5 @@
     <p id="gq-quote-font-status" data-quote-font-status role="status">코어에 설치된 글꼴을 불러오는 중입니다.</p>
     <p>한국어·영어·저자의 글꼴과 크기를 각각 설정합니다. 한국어와 영어는 각각 16~96px이며 기본 크기는 32px입니다. 모바일에서는 약 80%로 표시하고 카드 높이에 맞춰 더 줄어들 수 있습니다. 저자는 8px 이상, 한국어 본문 설정값보다 작게 선택하며 실제 표시되는 본문보다 작게 자동 조정합니다.</p>
   </fieldset>
-  <fieldset class="gq-quote-translation">
-    <legend>DeepL 사전 번역</legend>
-    <div class="gq-quote-setting-grid"><label>DeepL API 키<input name="deepl_key" type="password" autocomplete="new-password"></label></div>
-    <p>ZenQuotes·PositiveQuotation을 활성화하고 이용 범위를 확인한 뒤 아래 설정 저장 버튼을 누르세요. 대상 확인을 누르면 영문 문구를 서버에 자동 수집합니다. 파일 임포트 없이 미번역 일괄 번역을 실행할 수 있습니다.</p>
-    <p>DeepL 키를 입력하거나 바꾼 뒤에도 아래 코어 설정 저장 버튼을 눌러야 적용됩니다. 두 영문 공급원의 한국어 없는 문구만 번역하며, Korean Advice와 기존 한국어 번역은 전송하지 않습니다.</p>
-    <p>신규 Developer의 무료 제공량은 총 100만 자이며 자동 갱신되지 않습니다. 기존 API Free는 월 50만 자입니다. 실제 사용·잔여량은 대상 확인 시 조회합니다.</p>
-    <div class="gq-quote-toolbar">
-      <button type="button" data-quote-translation-check>대상 확인</button>
-      <button type="button" data-quote-translation-start>미번역 일괄 번역</button>
-      <button type="button" data-quote-translation-stop disabled>중지</button>
-    </div>
-    <p data-quote-translation-target>대상 확인을 눌러 미번역 건수와 예상 문자량을 확인하세요.</p>
-    <p data-quote-translation-usage>DeepL 사용량은 아직 조회하지 않았습니다.</p>
-    <progress data-quote-translation-progress value="0" max="1" aria-label="DeepL 사전 번역 진행률"></progress>
-    <p data-quote-translation-progress-text>진행 0건</p>
-    <p data-quote-translation-status role="status">완료된 묶음은 즉시 저장됩니다. 중지는 진행 중인 묶음이 끝난 뒤 적용되며, 다시 실행하면 남은 항목만 번역합니다.</p>
-  </fieldset>
-  <p class="gq-quote-management-status" data-quote-management-status role="status">공급원·표시·글꼴·크기·키를 바꾼 뒤 아래 설정 저장 버튼을 누르세요. 사전 번역은 완료된 묶음마다 즉시 저장됩니다.</p>
+  <p class="gq-quote-management-status" data-quote-management-status role="status">공급원·배경·글꼴·크기를 바꾼 뒤 아래 설정 저장 버튼을 누르세요. 이 플러그인은 API 키가 필요 없습니다.</p>
 </section>

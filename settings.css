@@ -28,7 +28,5 @@
 .gq-quote-preview .gq-quote-preview-help{margin:16px 0 0;font-size:11px}
 .gq-quote-settings button{min-height:44px;padding:9px 14px;border:1px solid #86709e80;border-radius:7px;background:color-mix(in srgb,#7953ed 20%,var(--app-bg-card,#25252d));color:inherit;font:inherit;font-size:12px;cursor:pointer}
 .gq-quote-settings button:disabled{opacity:.45;cursor:default}
-.gq-quote-toolbar{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:14px 0}
 .gq-quote-management-status{padding-top:16px;border-top:1px solid var(--app-border,#ffffff26)}
-.gq-quote-translation progress{display:block;width:100%;max-width:500px;height:16px;accent-color:var(--app-accent,#ad93ed)}
 @media(max-width:600px){.gq-quote-setting-grid{grid-template-columns:1fr}.gq-quote-provider-row{gap:8px}.gq-quote-settings fieldset{padding-bottom:8px}}
