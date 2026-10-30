@@ -29,6 +29,18 @@ QUERIES = {
 }
 
 
+# 환경부 미세먼지 예보 등급(㎍/㎥): 좋음·보통·나쁨·매우나쁨
+PM10_GRADES = ((30, '좋음'), (80, '보통'), (150, '나쁨'))
+PM25_GRADES = ((15, '좋음'), (35, '보통'), (75, '나쁨'))
+
+
+def grade(value, limits):
+    for limit, name in limits:
+        if value <= limit:
+            return name
+    return '매우나쁨'
+
+
 def enabled(config, key, default):
     return config.get(key, default) in (True, 1, '1', 'true', 'on')
 
@@ -39,6 +51,32 @@ class WeatherService:
 
     def display_enabled(self):
         return enabled(self.config, 'weather_display', True)
+
+    def air(self, latitude, longitude):
+        # 대기질은 날씨와 따로 실패할 수 있으므로 실패해도 날씨 표시는 유지한다.
+        if not enabled(self.config, 'air_display', True):
+            return None
+        state = self.service.state('air')
+        if state['until'] > self.service.clock():
+            return None
+        try:
+            host = 'air-quality-api.open-meteo.com'
+            data = self.service.cached(f'air:now:{latitude:.2f},{longitude:.2f}', 1800, lambda: self.service.fetch(
+                f'https://{host}/v1/air-quality?' + urlencode({'latitude': latitude, 'longitude': longitude,
+                                                              'timezone': 'auto', 'current': 'pm10,pm2_5'}),
+                hosts={host}))
+            now = data.get('current') if isinstance(data, dict) else None
+            pm10, pm25 = now.get('pm10'), now.get('pm2_5')
+            if type(pm10) not in (int, float) or type(pm25) not in (int, float):
+                raise ValueError('대기질 응답 형식을 확인해 주세요.')
+            state['failures'] = 0
+            return {'pm10': round(pm10), 'pm25': round(pm25),
+                    'pm10_grade': grade(pm10, PM10_GRADES), 'pm25_grade': grade(pm25, PM25_GRADES)}
+        except (ValueError, OSError, TypeError, AttributeError, KeyError) as error:
+            state['failures'] += 1
+            state['last_code'] = getattr(error, 'status', 0)
+            state['until'] = self.service.clock() + max(300, getattr(error, 'retry_after', 0))
+            return None
 
     def city(self):
         value = self.config.get('weather_city', '광주')
@@ -84,7 +122,8 @@ class WeatherService:
             state['failures'] = 0
             return {'city': name, 'condition': condition, 'label': label, 'icon': icon, 'is_day': day,
                     'temperature': round(temperature), 'key': f"{condition}-{'day' if day else 'night'}",
-                    'source_url': 'https://open-meteo.com/', 'license': 'CC BY 4.0'}
+                    'source_url': 'https://open-meteo.com/', 'license': 'CC BY 4.0',
+                    'air': self.air(latitude, longitude)}
         except (ValueError, OSError, TypeError, AttributeError, KeyError, IndexError) as error:
             state['failures'] += 1
             state['last_code'] = getattr(error, 'status', 0)

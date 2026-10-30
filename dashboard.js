@@ -6,7 +6,8 @@
   card.hidden = true;
   const initial = Array.isArray(items) ? items.find(item => item?.widget_type === 'quotes') : null;
   if (!initial || initial.enabled === false) return;
-  let alive = true, current, busy = false, language, fontsPromise, weather;
+  let alive = true, current, busy = false, language, fontsPromise, weather, dateTimer;
+  const statusBar = {...(initial.status_bar || {})};
   const selectedFonts = new Map();
   const controller = new AbortController();
   const query = selector => card.querySelector(selector);
@@ -106,12 +107,38 @@
     }
     fitSources();
   }
+  function renderDate() {
+    const label = query('[data-quote-date]');
+    label.hidden = !statusBar.show_date;
+    if (label.hidden) return;
+    const today = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'long'}).format(new Date());
+    label.textContent = statusBar.solar_term ? `${today} · ${statusBar.solar_term}` : today;
+  }
+  function renderContinue() {
+    const button = query('[data-quote-continue]'), book = statusBar.continue;
+    button.hidden = !book || !Number.isInteger(Number(book.book_id)) || typeof window.openReader !== 'function';
+    if (button.hidden) return;
+    button.textContent = `📖 ${book.title || '읽던 책'}${book.percent ? ` ${book.percent}%` : ''} · 이어 읽기`;
+    button.title = `${book.title || '읽던 책'} 이어 읽기`;
+  }
+  query('[data-quote-continue]').addEventListener('click', async () => {
+    const book = statusBar.continue;
+    try { await window.openReader(Number(book.book_id), book.file_format, book.title, Number(book.pages_read) || 0, Number(book.total_pages) || 0); }
+    catch { status.textContent = '책을 열지 못했습니다. 다시 시도해 주세요.'; }
+  });
   function showWeather(value) {
     const label = query('[data-quote-weather]');
     weather = value && typeof value === 'object' && Number.isFinite(Number(value.temperature)) ? value : null;
     label.hidden = !weather;
     label.textContent = weather ? `${weather.icon || ''} ${weather.city || ''} ${Math.round(Number(weather.temperature))}° · ${weather.label || ''}`.trim() : '';
     if (weather) label.title = `${weather.city || ''} 현재 날씨 · Open-Meteo`;
+    const air = query('[data-quote-air]'), dust = weather?.air;
+    air.hidden = !dust;
+    if (dust) {
+      air.textContent = `미세 ${dust.pm10_grade} · 초미세 ${dust.pm25_grade}`;
+      air.title = `미세먼지 ${dust.pm10}㎍/㎥ · 초미세먼지 ${dust.pm25}㎍/㎥ (환경부 기준 등급)`;
+      air.dataset.grade = ['매우나쁨', '나쁨', '보통', '좋음'].find(name => [dust.pm10_grade, dust.pm25_grade].includes(name)) || '';
+    }
     photoCredits(current?.background);
   }
   function photoCredits(photo = {}) {
@@ -119,7 +146,7 @@
     sources.querySelector('[data-weather-source]')?.remove();
     if (weather) {
       const line = document.createElement('p'); line.dataset.weatherSource = '';
-      line.append(`날씨 · ${weather.city || ''} ${weather.label || ''} · `); credit(line, 'Open-Meteo (CC BY 4.0)', 'https://open-meteo.com/');
+      line.append(`날씨${weather.air ? '·대기질' : ''} · ${weather.city || ''} ${weather.label || ''} · `); credit(line, 'Open-Meteo (CC BY 4.0)', 'https://open-meteo.com/');
       sources.append(line);
     }
     sources.querySelector('[data-photo-source]')?.remove();
@@ -222,7 +249,7 @@
       const loadPhoto = async () => {
         try {
           const result = await action('quotes_background', {tags: current?.tags || [], force});
-          if (alive) { background(result.background); showWeather(result.weather); }
+          if (alive) { background(result.background); showWeather(result.weather); if (result.solar_term) { statusBar.solar_term = result.solar_term; renderDate(); } }
         } catch (error) { scheduleBackground(60); throw error; }
       };
       const loadQuote = async () => {
@@ -282,12 +309,14 @@
   resizer.observe(card);
   document.fonts?.ready.then(scheduleFit);
   function cleanup() {
-    alive = false; controller.abort(); observer.disconnect(); resizer.disconnect(); cancelAnimationFrame(fitFrame); clearTimeout(backgroundTimer); image.onload = image.onerror = null;
+    alive = false; clearInterval(dateTimer); controller.abort(); observer.disconnect(); resizer.disconnect(); cancelAnimationFrame(fitFrame); clearTimeout(backgroundTimer); image.onload = image.onerror = null;
     if (pendingImage) { pendingImage.onload = pendingImage.onerror = null; pendingImage.removeAttribute('src'); }
   }
   observer.observe(document.body, {childList: true, subtree: true}); observer.observe(shadowRoot, {childList: true});
   shadowRoot.__goodQuotesCleanup = cleanup;
   render(initial);
+  renderDate(); renderContinue();
+  dateTimer = setInterval(renderDate, 60000);
   card.hidden = false;
   const actions = card.querySelectorAll('[data-quote-next], [data-quote-background]');
   actions.forEach(button => button.disabled = true);
