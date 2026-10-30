@@ -40,7 +40,7 @@
 .gq-quote-air{flex:none;margin:0;padding:4px 10px;border-radius:999px;background:transparent;color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;text-shadow:0 1px 3px #000c}
 .gq-quote-continue{flex:0 1 auto;min-width:0;max-width:42%;margin:0 auto;padding:5px 14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid #ffffff40;border-radius:999px;background:#10192380;color:#fff;font:inherit;font-size:12px;cursor:pointer;text-shadow:0 1px 3px #000c}
 .gq-quote-continue:hover,.gq-quote-continue:focus-visible{background:#ffffff26}
-.gq-quote-weather{flex:none;margin:0;padding:4px 10px;border-radius:999px;background:#10192366;color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;text-shadow:0 1px 3px #000c}
+.gq-quote-weather{flex:none;margin:0;padding:4px 10px;border-radius:999px;background:transparent;color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;text-shadow:0 1px 3px #000c}
 .gq-quote-status{flex:1;min-width:180px;margin:0;color:#eee3ca;font-size:10px;line-height:1.6}
 .gq-quote-status:empty{display:none}
 .gq-quote [hidden]{display:none!important}
