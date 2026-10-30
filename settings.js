@@ -4,7 +4,7 @@
   if (!panel) return;
   const query = selector => panel.querySelector(selector);
   const message = query('[data-quote-management-status]');
-  const defaults = {korean_enabled: true, zen_enabled: true, zen_terms: true, korean_weight: config.local_weight ?? 60, zen_weight: 35, positive_weight: 5, quote_language: 'both', quote_font_size: 32, quote_author_font_size: 15, background_source: 'weather', photo_refresh_hours: 3, weather_city: '광주', weather_display: true,
+  const defaults = {korean_enabled: true, zen_enabled: true, zen_terms: true, korean_weight: config.local_weight ?? 60, zen_weight: 35, positive_weight: 5, quote_language: 'both', quote_font_size: 32, quote_author_font_size: 15, background_source: 'weather', photo_refresh_hours: 3, weather_city: '광주', weather_display: true, korea_first: true,
     quote_en_font: config.quote_en_font === undefined ? config.quote_font : config.quote_en_font,
     quote_en_font_size: config.quote_en_font_size === undefined ? config.quote_font_size ?? 32 : 32};
   const fontSelects = [query('[name=quote_font]'), query('[name=quote_en_font]'), query('[name=quote_author_font]')], fontStatus = query('[data-quote-font-status]');
@@ -130,7 +130,7 @@
     const labels = {healthy: '정상', disabled: '꺼짐', 'terms-pending': '이용 범위 미확인', cooldown: '잠시 대기', 'no-eligible-content': '사용 가능한 문구 없음'};
     query('[data-quote-provider-state]').textContent = result.providers.map(provider => `${provider.name} ${labels[provider.status] || provider.status} (${provider.effective_weight}%)`).join(' / ');
     const backgroundLabels = {healthy: '정상', cooldown: '실패 후 잠시 대기', unknown: '아직 요청 없음'};
-    const sourceLabels = {weather: '날씨 연동', random: '5곳 무작위', gradient: '그라데이션'};
+    const sourceLabels = {weather: '날씨 연동', random: '6곳 무작위', korea: '한국 풍경', gradient: '그라데이션'};
     const backgrounds = result.backgrounds || {providers: []};
     query('[data-quote-background-state]').textContent = `배경(${sourceLabels[backgrounds.selected] || backgrounds.selected}) · ` +
       backgrounds.providers.map(item => `${item.name} ${backgroundLabels[item.status] || item.status}` +

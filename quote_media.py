@@ -11,10 +11,13 @@ from .quotes import _lock, number
 from .quote_weather import QUERIES, WeatherService
 
 GRADIENT = {'provider': 'gradient', 'url': '', 'creator': '', 'source_url': '', 'license': '', 'license_url': ''}
-PROVIDERS = ('bing', 'wikimedia', 'artic', 'nasa', 'picsum')
+PROVIDERS = ('korea', 'bing', 'wikimedia', 'artic', 'nasa', 'picsum')
+# 한국 풍경: Wikimedia Commons 품질 사진에서 한국 명소·계절 풍경을 검색한다.
+KOREA_QUERIES = ('South Korea landscape', 'Seoraksan', 'Jeju landscape', 'Gyeongbokgung', 'hanok village',
+                 'Korea autumn', 'Korea temple', 'Bukhansan', 'Mudeungsan', 'Korea coast', 'Korea cherry blossom', 'Seoul night')
 # 날씨 연동은 검색이 되는 두 곳에서 날씨에 맞는 사진을 찾는다.
 WEATHER_PROVIDERS = ('commons_weather', 'artic_weather')
-LABELS = {'bing': 'Bing', 'wikimedia': 'Wikimedia Commons', 'artic': 'Art Institute of Chicago',
+LABELS = {'korea': 'Wikimedia Commons · 한국 풍경', 'bing': 'Bing', 'wikimedia': 'Wikimedia Commons', 'artic': 'Art Institute of Chicago',
           'nasa': 'NASA APOD', 'picsum': 'Lorem Picsum', 'commons_weather': 'Wikimedia Commons · 날씨',
           'artic_weather': 'Art Institute of Chicago · 날씨', 'weather': 'Open-Meteo 날씨'}
 
@@ -98,21 +101,40 @@ class MediaService:
                     'license_url': public_url(value('LicenseUrl')) or source}
         return None
 
-    def commons_weather_background(self):
+    def _commons_search(self, query, offsets=(0, 30, 60)):
         host = 'commons.wikimedia.org'
-        query = QUERIES[self.weather['key']][0]
-        offset = self.service.rng.choice((0, 30, 60))
+        offset = self.service.rng.choice(offsets)
         # 품질 사진(Quality images) 중 가로 1600px 넘는 사진만 검색한다.
         params = urlencode({'action': 'query', 'format': 'json', 'formatversion': 2, 'generator': 'search',
                             'gsrsearch': f'{query} filetype:bitmap filew:>1600 incategory:"Quality images"',
                             'gsrnamespace': 6, 'gsrlimit': 30, 'gsroffset': offset,
                             'prop': 'imageinfo', 'iiprop': 'url|size|mime|extmetadata', 'iiurlwidth': 1920,
                             'iiextmetadatafilter': 'Artist|LicenseShortName|LicenseUrl|ObjectName'})
-        data = self.service.cached(f'commons_weather:{query}:{offset}', 6 * 3600, lambda: self.service.fetch(
+        data = self.service.cached(f'commons_search:{query}:{offset}', 6 * 3600, lambda: self.service.fetch(
             f'https://{host}/w/api.php?' + params, hosts={host}, timeout=8))
         pages = list(((data.get('query') or {}).get('pages') or []) if isinstance(data, dict) else [])
         self.service.rng.shuffle(pages)
-        return self._commons_photo(pages, f"Wikimedia Commons · {self.weather['label']} 사진") or {**GRADIENT, 'reason': 'invalid-photo'}
+        return pages
+
+    def korea_first(self):
+        return self.config.get('korea_first', True) in (True, 1, '1', 'true', 'on')
+
+    def commons_weather_background(self):
+        query = QUERIES[self.weather['key']][0]
+        label = self.weather['label']
+        if self.korea_first():
+            # 한국 사진을 먼저 찾고, 해당 날씨의 한국 사진이 없으면 전 세계 사진으로 넓힌다.
+            photo = self._commons_photo(self._commons_search(query + ' Korea', (0,)), f'Wikimedia Commons · 한국 {label} 사진')
+            if photo:
+                return photo
+        return self._commons_photo(self._commons_search(query), f'Wikimedia Commons · {label} 사진') or {**GRADIENT, 'reason': 'invalid-photo'}
+
+    def korea_background(self):
+        for query in self.service.rng.sample(KOREA_QUERIES, 2):
+            photo = self._commons_photo(self._commons_search(query, (0, 30)), 'Wikimedia Commons · 한국 풍경')
+            if photo:
+                return photo
+        return {**GRADIENT, 'reason': 'invalid-photo'}
 
     def artic_weather_background(self):
         photo = self.artic_background(QUERIES[self.weather['key']][1], 'artic_weather')
