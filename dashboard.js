@@ -115,8 +115,8 @@
     if (!safeUrl(photo.url)) return;
     const credits = document.createElement('div'); credits.dataset.photoSource = '';
     const author = document.createElement('p'), provider = document.createElement('p'), license = document.createElement('p');
-    author.append(photo.provider === 'met' ? '작품 작가 · ' : '사진 작가 · '); credit(author, photo.creator || '작가 미상', photo.creator_url || photo.source_url);
-    provider.append('이미지 출처 · '); credit(provider, {met: 'The Metropolitan Museum of Art', pexels: 'Pexels', unsplash: 'Unsplash'}[photo.provider] || '원본', photo.source_url);
+    author.append(`${photo.creator_label || '사진 작가'} · `); credit(author, photo.creator || '작가 미상', photo.creator_url || photo.source_url);
+    provider.append('이미지 출처 · '); credit(provider, photo.provider_name || '원본', photo.source_url);
     license.append('이미지 이용 조건 · '); credit(license, photo.license || '이용 조건', photo.license_url);
     credits.append(author, provider, license); sources.append(credits);
     for (const [label, value] of [['작품명', photo.title], ['소장 정보', photo.credit_line]]) {
@@ -135,13 +135,11 @@
     scheduleBackground(photo.refresh_after);
     const url = safeUrl(photo.url), version = ++backgroundVersion;
     if (pendingImage) { pendingImage.onload = pendingImage.onerror = null; pendingImage.removeAttribute('src'); pendingImage = null; }
-    const messages = {'terms-pending': '사진 공급원의 이용 조건 확인 후 배경을 사용할 수 있습니다.',
-      'key-required': '사진 API 키를 설정하면 배경을 사용할 수 있습니다.',
-      cooldown: '사진 공급원이 잠시 응답하지 않아 그라데이션을 표시합니다.',
+    const messages = {cooldown: '사진 공급원이 잠시 응답하지 않아 그라데이션을 표시합니다.',
       'request-failed': '사진을 불러오지 못해 그라데이션을 표시합니다.',
-      'no-public-domain-art': '표시할 수 있는 Met 공개 작품이 없어 그라데이션을 표시합니다.',
       'invalid-photo': '사용할 수 있는 사진이 없어 그라데이션을 표시합니다.'};
     status.textContent = photo.reason && url ? '사진을 새로 받지 못해 기존 배경을 유지합니다.' : messages[photo.reason] || '';
+    query('[data-quote-background]').hidden = photo.reason === 'selected-gradient';
     scheduleFit();
     function commit() {
       current.background = photo;
