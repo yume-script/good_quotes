@@ -1,5 +1,6 @@
 # 키 없이 쓸 수 있는 공개 이미지 공급원에서 글귀 카드의 배경을 고릅니다.
 from math import ceil
+import html
 import re
 import threading
 import time
@@ -10,6 +11,8 @@ from .quotes import _lock, number
 
 GRADIENT = {'provider': 'gradient', 'url': '', 'creator': '', 'source_url': '', 'license': '', 'license_url': ''}
 PROVIDERS = ('bing', 'wikimedia', 'artic', 'nasa', 'picsum')
+LABELS = {'bing': 'Bing', 'wikimedia': 'Wikimedia Commons', 'artic': 'Art Institute of Chicago',
+          'nasa': 'NASA APOD', 'picsum': 'Lorem Picsum'}
 
 
 class MediaService:
@@ -17,8 +20,19 @@ class MediaService:
         self.service, self.config = service, service.config
 
     def selected(self):
-        provider = self.config.get('photo_provider', 'random')
-        return provider if provider in PROVIDERS + ('random',) else 'gradient'
+        # 1.0.x의 photo_provider(기본값 그라데이션)는 읽지 않는다. 남아 있으면 배경이 계속 꺼져 보였다.
+        provider = self.config.get('background_source', 'random')
+        return provider if provider in PROVIDERS + ('random', 'gradient') else 'random'
+
+    def status(self):
+        now = self.service.clock()
+        result = []
+        for provider in PROVIDERS:
+            state = self.service.state(provider)
+            result.append({'id': provider, 'name': LABELS[provider], 'calls': state['calls'],
+                           'displayed': state['displayed'], 'failures': state['failures'], 'last_code': state['last_code'],
+                           'status': 'cooldown' if state['until'] > now else 'healthy' if state['displayed'] else 'unknown'})
+        return {'selected': self.selected(), 'providers': result}
 
     def bing_background(self):
         host = 'www.bing.com'
@@ -41,35 +55,35 @@ class MediaService:
                 'license': '© 각 저작권자 · Bing 배경화면 개인 이용', 'license_url': 'https://www.bing.com/'}
 
     def wikimedia_background(self):
-        host = 'en.wikipedia.org'
+        host = 'commons.wikimedia.org'
         now = self.service.clock()
         # 오늘의 사진은 하루 한 장이라 최근 7일 중에서 고른다. 세로 사진은 건너뛴다.
         for days in self.service.rng.sample(range(7), 3):
-            day = time.strftime('%Y/%m/%d', time.gmtime(now - days * 86400))
+            day = time.strftime('%Y-%m-%d', time.gmtime(now - days * 86400))
+            params = urlencode({'action': 'query', 'format': 'json', 'formatversion': 2, 'generator': 'images',
+                                'titles': 'Template:Potd/' + day, 'prop': 'imageinfo', 'iiprop': 'url|size|mime|extmetadata',
+                                'iiurlwidth': 1920, 'iiextmetadatafilter': 'Artist|LicenseShortName|LicenseUrl|ObjectName'})
             data = self.service.cached('wikimedia:' + day, 86400, lambda: self.service.fetch(
-                f'https://{host}/api/rest_v1/feed/featured/{day}', hosts={host}, timeout=8))
-            item = data.get('image') if isinstance(data, dict) else None
-            if not isinstance(item, dict):
-                continue
-            original, thumb = item.get('image') or {}, item.get('thumbnail') or {}
-            width, height = original.get('width'), original.get('height')
-            if type(width) is not int or type(height) is not int or width < height:
-                continue
-            image = original.get('source')
-            if width > 1920 and isinstance(thumb.get('source'), str):
-                image = re.sub(r'/\d+px-([^/]+)$', r'/1920px-\1', thumb['source'])
-            image = public_url(image, {'upload.wikimedia.org'})
-            source = public_url(item.get('file_page'), {'commons.wikimedia.org'})
-            if not image or not source:
-                continue
-            license_info = item.get('license') if isinstance(item.get('license'), dict) else {}
-            artist = item.get('artist') if isinstance(item.get('artist'), dict) else {}
-            description = item.get('description') if isinstance(item.get('description'), dict) else {}
-            return {'provider': 'wikimedia', 'provider_name': 'Wikimedia Commons 오늘의 사진', 'url': image,
-                    'source_url': source, 'title': str(description.get('text') or item.get('title') or '')[:500],
-                    'creator': ' '.join(str(artist.get('text') or '작가 미상').split())[:200],
-                    'license': str(license_info.get('type') or 'Wikimedia Commons')[:100],
-                    'license_url': public_url(license_info.get('url')) or source}
+                f'https://{host}/w/api.php?' + params, hosts={host}, timeout=8))
+            pages = ((data.get('query') or {}).get('pages') or []) if isinstance(data, dict) else []
+            for page in pages:
+                info = (page.get('imageinfo') or [None])[0] if isinstance(page, dict) else None
+                if not isinstance(info, dict) or info.get('mime') not in ('image/jpeg', 'image/png', 'image/webp'):
+                    continue
+                width, height = info.get('width'), info.get('height')
+                if type(width) is not int or type(height) is not int or width < height:
+                    continue
+                image = public_url(info.get('thumburl') or info.get('url'), {'upload.wikimedia.org'})
+                source = public_url(info.get('descriptionurl'), {host})
+                if not image or not source:
+                    continue
+                meta = info.get('extmetadata') if isinstance(info.get('extmetadata'), dict) else {}
+                value = lambda key: ' '.join(html.unescape(re.sub(r'<[^>]*>', ' ', str((meta.get(key) or {}).get('value') or ''))).split())
+                return {'provider': 'wikimedia', 'provider_name': 'Wikimedia Commons 오늘의 사진', 'url': image,
+                        'source_url': source, 'title': (value('ObjectName') or str(page.get('title') or ''))[:500],
+                        'creator': (value('Artist') or '작가 미상')[:200],
+                        'license': (value('LicenseShortName') or 'Wikimedia Commons')[:100],
+                        'license_url': public_url(value('LicenseUrl')) or source}
         return {**GRADIENT, 'reason': 'invalid-photo'}
 
     def artic_background(self):
