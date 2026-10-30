@@ -3,11 +3,11 @@
   <h3>좋은 글귀 상세 설정</h3>
   <p>홈 화면의 좋은 글귀 위젯에 적용됩니다. 내 설정에서 홈 화면 플러그인 배치 모드를 켠 뒤 ‘위젯 추가 → 좋은 글귀’를 선택하세요.</p>
   <fieldset><legend>글귀 공급원</legend>
-    <p>한국어는 Korean Advice API를 기본으로 사용하며, 사용할 수 있는 공급원 안에서 가중치를 재계산합니다.</p>
+    <p>위젯의 언어 버튼으로 한국어(Korean Advice)·영어(ZenQuotes·PositiveQuotation)·둘 다를 고릅니다. 둘 다일 때는 켜진 공급원 안에서 가중치로 섞습니다. 모두 API 키가 필요 없습니다.</p>
     <div class="gq-quote-provider-row"><label><input type="checkbox" role="switch" name="korean_enabled" checked> Korean Advice API</label><label>가중치 <input type="number" name="korean_weight" min="0" max="100" value="60"></label></div>
     <p>Korean Advice는 비상업적 이용이 무료이며 카드에 출처를 표시합니다. 상업적 이용은 권리자에게 문의하세요. <a href="https://github.com/gwongibeom/korean-advice-open-api/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">공식 라이선스</a></p>
-    <div class="gq-quote-provider-row"><label><input type="checkbox" role="switch" name="zen_enabled"> ZenQuotes</label><label>가중치 <input type="number" name="zen_weight" min="0" max="100" value="35"></label></div>
-    <label class="gq-quote-confirm"><input type="checkbox" role="switch" name="zen_terms"> ZenQuotes의 앱 표시 이용 범위를 확인했습니다.</label>
+    <div class="gq-quote-provider-row"><label><input type="checkbox" role="switch" name="zen_enabled" checked> ZenQuotes</label><label>가중치 <input type="number" name="zen_weight" min="0" max="100" value="35"></label></div>
+    <label class="gq-quote-confirm"><input type="checkbox" role="switch" name="zen_terms" checked> ZenQuotes의 앱 표시 이용 범위를 확인했습니다.</label>
     <div class="gq-quote-provider-row"><label><input type="checkbox" role="switch" name="positive_enabled"> PositiveQuotation</label><label>가중치 <input type="number" name="positive_weight" min="0" max="100" value="5"></label></div>
     <label class="gq-quote-confirm"><input type="checkbox" role="switch" name="positive_terms"> 공식 30개 속담 API의 국내 이용 범위와 원전 표시 조건을 확인했습니다.</label>
     <p><a href="https://docs.zenquotes.io/zenquotes-documentation/" target="_blank" rel="noopener noreferrer">ZenQuotes API 안내</a> · <a href="https://docs.zenquotes.io/terms-and-conditions/" target="_blank" rel="noopener noreferrer">약관</a> · <a href="https://positivequotation.com/developers/public-domain-quotes-api" target="_blank" rel="noopener noreferrer">PositiveQuotation 안내</a></p>
