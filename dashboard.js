@@ -6,7 +6,7 @@
   card.hidden = true;
   const initial = Array.isArray(items) ? items.find(item => item?.widget_type === 'quotes') : null;
   if (!initial || initial.enabled === false) return;
-  let alive = true, current, busy = false, language, fontsPromise;
+  let alive = true, current, busy = false, language, fontsPromise, weather;
   const selectedFonts = new Map();
   const controller = new AbortController();
   const query = selector => card.querySelector(selector);
@@ -106,8 +106,22 @@
     }
     fitSources();
   }
+  function showWeather(value) {
+    const label = query('[data-quote-weather]');
+    weather = value && typeof value === 'object' && Number.isFinite(Number(value.temperature)) ? value : null;
+    label.hidden = !weather;
+    label.textContent = weather ? `${weather.icon || ''} ${weather.city || ''} ${Math.round(Number(weather.temperature))}° · ${weather.label || ''}`.trim() : '';
+    if (weather) label.title = `${weather.city || ''} 현재 날씨 · Open-Meteo`;
+    photoCredits(current?.background);
+  }
   function photoCredits(photo = {}) {
     const sources = query('[data-quote-sources]');
+    sources.querySelector('[data-weather-source]')?.remove();
+    if (weather) {
+      const line = document.createElement('p'); line.dataset.weatherSource = '';
+      line.append(`날씨 · ${weather.city || ''} ${weather.label || ''} · `); credit(line, 'Open-Meteo (CC BY 4.0)', 'https://open-meteo.com/');
+      sources.append(line);
+    }
     sources.querySelector('[data-photo-source]')?.remove();
     if (!safeUrl(photo.url)) return;
     const credits = document.createElement('div'); credits.dataset.photoSource = '';
@@ -208,7 +222,7 @@
       const loadPhoto = async () => {
         try {
           const result = await action('quotes_background', {tags: current?.tags || [], force});
-          if (alive) background(result.background);
+          if (alive) { background(result.background); showWeather(result.weather); }
         } catch (error) { scheduleBackground(60); throw error; }
       };
       const loadQuote = async () => {

@@ -2,7 +2,7 @@
 from flask import has_request_context, request, session
 from plugins.metadata.base import BaseMetadataProvider
 
-PLUGIN_VERSION = '1.3.0'
+PLUGIN_VERSION = '1.4.0'
 SESSIONS = ('general', 'adult', 'audiobook', 'video')
 
 try:
@@ -82,9 +82,20 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
                 tags = context.get('tags', [])
                 if not isinstance(tags, list) or len(tags) > 10 or any(not isinstance(tag, str) or len(tag) > 80 for tag in tags):
                     raise ValueError('태그 형식을 확인해 주세요.')
-                return {'success': True, 'background': MediaService(service).background(tags, force=context.get('force') is True)}
+                media = MediaService(service)
+                background = media.background(tags, force=context.get('force') is True)
+                from .quote_weather import WeatherService
+                weather_service = WeatherService(service)
+                weather = media.weather or (weather_service.current() if weather_service.display_enabled() else None)
+                if weather and (weather_service.display_enabled() or media.selected() == 'weather'):
+                    # 날씨는 30분마다 다시 확인한다. 바뀌면 날씨 연동 배경도 그때 새로 고른다.
+                    background['refresh_after'] = min(background.get('refresh_after') or 1800, 1800)
+                return {'success': True, 'background': background,
+                        'weather': weather if weather_service.display_enabled() else None}
             if action_id == 'quotes_manage':
-                return {'success': True, 'providers': service.status(), 'backgrounds': MediaService(service).status()}
+                from .quote_weather import WeatherService
+                return {'success': True, 'providers': service.status(), 'backgrounds': MediaService(service).status(),
+                        'weather': WeatherService(service).current()}
             return {'success': False, 'error': '지원하지 않는 글귀 작업입니다.'}
         except (ValueError, OSError, TypeError, RuntimeError):
             return {'success': False, 'error': '글귀 작업에 실패했습니다. 입력 형식·외부 서비스 상태를 확인해 주세요.'}

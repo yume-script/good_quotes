@@ -8,26 +8,31 @@ from urllib.parse import urlencode
 
 from .quote_http import public_url
 from .quotes import _lock, number
+from .quote_weather import QUERIES, WeatherService
 
 GRADIENT = {'provider': 'gradient', 'url': '', 'creator': '', 'source_url': '', 'license': '', 'license_url': ''}
 PROVIDERS = ('bing', 'wikimedia', 'artic', 'nasa', 'picsum')
+# 날씨 연동은 검색이 되는 두 곳에서 날씨에 맞는 사진을 찾는다.
+WEATHER_PROVIDERS = ('commons_weather', 'artic_weather')
 LABELS = {'bing': 'Bing', 'wikimedia': 'Wikimedia Commons', 'artic': 'Art Institute of Chicago',
-          'nasa': 'NASA APOD', 'picsum': 'Lorem Picsum'}
+          'nasa': 'NASA APOD', 'picsum': 'Lorem Picsum', 'commons_weather': 'Wikimedia Commons · 날씨',
+          'artic_weather': 'Art Institute of Chicago · 날씨', 'weather': 'Open-Meteo 날씨'}
 
 
 class MediaService:
     def __init__(self, service):
         self.service, self.config = service, service.config
+        self.weather = None
 
     def selected(self):
         # 1.0.x의 photo_provider(기본값 그라데이션)는 읽지 않는다. 남아 있으면 배경이 계속 꺼져 보였다.
-        provider = self.config.get('background_source', 'random')
-        return provider if provider in PROVIDERS + ('random', 'gradient') else 'random'
+        provider = self.config.get('background_source', 'weather')
+        return provider if provider in PROVIDERS + ('weather', 'random', 'gradient') else 'weather'
 
     def status(self):
         now = self.service.clock()
         result = []
-        for provider in PROVIDERS:
+        for provider in PROVIDERS + WEATHER_PROVIDERS + ('weather',):
             state = self.service.state(provider)
             result.append({'id': provider, 'name': LABELS[provider], 'calls': state['calls'],
                            'displayed': state['displayed'], 'failures': state['failures'], 'last_code': state['last_code'],
@@ -66,32 +71,59 @@ class MediaService:
             data = self.service.cached('wikimedia:' + day, 86400, lambda: self.service.fetch(
                 f'https://{host}/w/api.php?' + params, hosts={host}, timeout=8))
             pages = ((data.get('query') or {}).get('pages') or []) if isinstance(data, dict) else []
-            for page in pages:
-                info = (page.get('imageinfo') or [None])[0] if isinstance(page, dict) else None
-                if not isinstance(info, dict) or info.get('mime') not in ('image/jpeg', 'image/png', 'image/webp'):
-                    continue
-                width, height = info.get('width'), info.get('height')
-                if type(width) is not int or type(height) is not int or width < height:
-                    continue
-                image = public_url(info.get('thumburl') or info.get('url'), {'upload.wikimedia.org'})
-                source = public_url(info.get('descriptionurl'), {host})
-                if not image or not source:
-                    continue
-                meta = info.get('extmetadata') if isinstance(info.get('extmetadata'), dict) else {}
-                value = lambda key: ' '.join(html.unescape(re.sub(r'<[^>]*>', ' ', str((meta.get(key) or {}).get('value') or ''))).split())
-                return {'provider': 'wikimedia', 'provider_name': 'Wikimedia Commons 오늘의 사진', 'url': image,
-                        'source_url': source, 'title': (value('ObjectName') or str(page.get('title') or ''))[:500],
-                        'creator': (value('Artist') or '작가 미상')[:200],
-                        'license': (value('LicenseShortName') or 'Wikimedia Commons')[:100],
-                        'license_url': public_url(value('LicenseUrl')) or source}
+            photo = self._commons_photo(pages, 'Wikimedia Commons 오늘의 사진')
+            if photo:
+                return photo
         return {**GRADIENT, 'reason': 'invalid-photo'}
 
-    def artic_background(self):
+    def _commons_photo(self, pages, provider_name):
+        host = 'commons.wikimedia.org'
+        for page in pages:
+            info = (page.get('imageinfo') or [None])[0] if isinstance(page, dict) else None
+            if not isinstance(info, dict) or info.get('mime') not in ('image/jpeg', 'image/png', 'image/webp'):
+                continue
+            width, height = info.get('width'), info.get('height')
+            if type(width) is not int or type(height) is not int or width < height:
+                continue
+            image = public_url(info.get('thumburl') or info.get('url'), {'upload.wikimedia.org'})
+            source = public_url(info.get('descriptionurl'), {host})
+            if not image or not source:
+                continue
+            meta = info.get('extmetadata') if isinstance(info.get('extmetadata'), dict) else {}
+            value = lambda key: ' '.join(html.unescape(re.sub(r'<[^>]*>', ' ', str((meta.get(key) or {}).get('value') or ''))).split())
+            return {'provider': 'wikimedia', 'provider_name': provider_name, 'url': image,
+                    'source_url': source, 'title': (value('ObjectName') or str(page.get('title') or ''))[:500],
+                    'creator': (value('Artist') or '작가 미상')[:200],
+                    'license': (value('LicenseShortName') or 'Wikimedia Commons')[:100],
+                    'license_url': public_url(value('LicenseUrl')) or source}
+        return None
+
+    def commons_weather_background(self):
+        host = 'commons.wikimedia.org'
+        query = QUERIES[self.weather['key']][0]
+        offset = self.service.rng.choice((0, 30, 60))
+        # 품질 사진(Quality images) 중 가로 1600px 넘는 사진만 검색한다.
+        params = urlencode({'action': 'query', 'format': 'json', 'formatversion': 2, 'generator': 'search',
+                            'gsrsearch': f'{query} filetype:bitmap filew:>1600 incategory:"Quality images"',
+                            'gsrnamespace': 6, 'gsrlimit': 30, 'gsroffset': offset,
+                            'prop': 'imageinfo', 'iiprop': 'url|size|mime|extmetadata', 'iiurlwidth': 1920,
+                            'iiextmetadatafilter': 'Artist|LicenseShortName|LicenseUrl|ObjectName'})
+        data = self.service.cached(f'commons_weather:{query}:{offset}', 6 * 3600, lambda: self.service.fetch(
+            f'https://{host}/w/api.php?' + params, hosts={host}, timeout=8))
+        pages = list(((data.get('query') or {}).get('pages') or []) if isinstance(data, dict) else [])
+        self.service.rng.shuffle(pages)
+        return self._commons_photo(pages, f"Wikimedia Commons · {self.weather['label']} 사진") or {**GRADIENT, 'reason': 'invalid-photo'}
+
+    def artic_weather_background(self):
+        photo = self.artic_background(QUERIES[self.weather['key']][1], 'artic_weather')
+        return {**photo, 'provider_name': f"Art Institute of Chicago · {self.weather['label']} 명화"}
+
+    def artic_background(self, query='landscape', cache='artic'):
         host = 'api.artic.edu'
-        page = self.service.rng.randint(1, 5)
-        params = urlencode({'q': 'landscape', 'query[term][is_public_domain]': 'true', 'limit': 50, 'page': page,
+        page = self.service.rng.randint(1, 5 if query == 'landscape' else 2)
+        params = urlencode({'q': query, 'query[term][is_public_domain]': 'true', 'limit': 50, 'page': page,
                             'fields': 'id,title,artist_display,image_id,thumbnail'})
-        data = self.service.cached(f'artic:{page}', 3600, lambda: self.service.fetch(
+        data = self.service.cached(f'{cache}:{query}:{page}', 3600, lambda: self.service.fetch(
             f'https://{host}/api/v1/artworks/search?' + params, hosts={host}, timeout=8))
         iiif = public_url((data.get('config') or {}).get('iiif_url'), {'www.artic.edu'}) or 'https://www.artic.edu/iiif/2'
         works = [item for item in data.get('data', []) if isinstance(item, dict) and type(item.get('id')) is int
@@ -147,19 +179,30 @@ class MediaService:
         with selection_lock:
             now = self.service.clock()
             current = self.service.runtime.get('selected_background')
-            if current and current['selected'] != selected:
+            weather_key = ''
+            if selected == 'weather':
+                self.weather = WeatherService(self.service).current()
+                weather_key = self.weather['key'] if self.weather else 'unavailable'
+            # 날씨가 바뀌면 변경 주기를 기다리지 않고 새 사진을 고른다.
+            if current and (current['selected'] != selected or current.get('weather_key', '') != weather_key):
                 current = None
             previous = current['photo'] if current else GRADIENT
             if not force and current and current['expires'] > now:
                 return {**previous, 'refresh_after': max(1, ceil(current['expires'] - now))}
-            candidates = [selected] if selected != 'random' else [
-                provider for provider in PROVIDERS if self.service.state(provider)['until'] <= now]
+            ready = [provider for provider in PROVIDERS if self.service.state(provider)['until'] <= now]
+            self.service.rng.shuffle(ready)
+            if selected == 'weather' and self.weather:
+                # Wikimedia 사진을 먼저 찾고, 없으면 명화, 그래도 없으면 일반 무작위 배경으로 넘어간다.
+                candidates = [*WEATHER_PROVIDERS, *ready[:2]]
+            elif selected in ('weather', 'random'):
+                candidates = ready[:3]
+            else:
+                candidates = [selected]
             if not candidates:
                 return {**previous, 'reason': 'cooldown', 'refresh_after': 60}
-            self.service.rng.shuffle(candidates)
             photo = {**GRADIENT, 'reason': 'cooldown'}
-            # 무작위 모드에서는 실패한 공급원을 건너뛰고 다음 공급원을 시도한다.
-            for provider in candidates[:3]:
+            # 실패한 공급원을 건너뛰고 다음 공급원을 시도한다.
+            for provider in candidates:
                 photo = self._select(provider)
                 if photo.get('url'):
                     break
@@ -169,7 +212,8 @@ class MediaService:
             else:
                 expires = now + 60
                 photo = {**previous, 'reason': photo.get('reason', 'request-failed')}
-            self.service.runtime['selected_background'] = {'selected': selected, 'photo': dict(photo), 'expires': expires}
+            self.service.runtime['selected_background'] = {'selected': selected, 'photo': dict(photo), 'expires': expires,
+                                                           'weather_key': weather_key}
             return {**photo, 'refresh_after': max(1, ceil(expires - now))}
 
     def _select(self, provider):
