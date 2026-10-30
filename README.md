@@ -6,7 +6,7 @@ BookOasis 홈 화면에 **좋은 글귀**와 **배경 이미지**를 보여주�
 | 항목 | 내용 |
 | --- | --- |
 | 플러그인 ID | `good_quotes` |
-| 버전 | 1.2.2 |
+| 버전 | 1.3.0 |
 | 지원 세션 | 일반·성인 도서, 오디오북, 비디오 |
 | 외부 의존성 | 없음 (표준 라이브러리 + 코어 Flask) |
 | API 키 | 필요 없음 |
@@ -17,7 +17,7 @@ BookOasis 홈 화면에 **좋은 글귀**와 **배경 이미지**를 보여주�
 - **글귀** — 한국어는 [Korean Advice API](https://github.com/gwongibeom/korean-advice-open-api), 영어는 ZenQuotes(기본 켜짐)·PositiveQuotation에서 받습니다. 모두 키가 필요 없습니다. 둘 다 표시할 때는 가중치(기본 60:35:5)로 섞습니다. 공급원이 모두 실패하면 내장 문구를 표시합니다.
 - **배경 이미지** — API 키가 필요 없는 5곳(Bing 오늘의 이미지, Wikimedia Commons 오늘의 사진, Art Institute of Chicago, NASA APOD, Lorem Picsum) 중 하나를 고르거나 **5곳 무작위**(기본)로 섞어 씁니다. 그라데이션만 쓸 수도 있습니다. 배경은 1~24시간(기본 3시간)마다 바뀌고, 무작위 모드에서는 응답하지 않는 곳을 건너뜁니다.
 - **위젯 도구** — 다른 글귀, 언어 전환(`En`은 영어 글귀, `한`은 한국어 글귀, `En.한`은 둘을 섞어 받음), 배경 변경, 출처 보기 버튼이 있습니다. 배경을 그라데이션으로 두면 배경 변경 버튼은 숨겨집니다.
-- **글꼴** — 한국어·영어·저자의 글꼴과 크기를 각각 고릅니다. 글꼴은 코어에 설치된 목록에서 고르며, 긴 문구는 카드 높이에 맞게 자동으로 줄입니다.
+- **글꼴** — 한국어·영어·저자의 글꼴과 크기를 각각 고릅니다. 고운바탕·고운돋움·나눔명조·나눔손글씨 펜 4종이 포함되어 있고, 코어에 넣은 다른 글꼴도 고를 수 있습니다. 긴 문구는 카드 높이에 맞게 자동으로 줄입니다.
 
 ## 설치
 
@@ -30,6 +30,8 @@ plugins/metadata/good_quotes/
   quotes.py
   quote_http.py
   quote_media.py
+  quote_fonts.py
+  fonts/
   VERSION
   dashboard.html
   dashboard.css
@@ -48,9 +50,22 @@ plugins/metadata/good_quotes/
 
 Detail Studio와 함께 설치해도 됩니다. 두 플러그인은 설정과 저장 파일이 서로 겹치지 않습니다.
 
+## 포함 글꼴
+
+플러그인을 불러올 때 `fonts/`의 글꼴을 코어 사용자 글꼴 폴더(`static/fonts/custom/`, Docker는 `custom_fonts/`)에 복사합니다. 같은 이름의 파일이 이미 있으면 덮어쓰지 않습니다. 복사된 글꼴은 플러그인 설정의 글꼴 목록과 코어 뷰어의 글꼴 목록에 함께 나타납니다.
+
+| 목록 이름 | 글꼴 | 라이선스 |
+| --- | --- | --- |
+| `GowunBatang` | 고운바탕 | SIL OFL 1.1 (`fonts/OFL-GowunBatang.txt`) |
+| `GowunDodum` | 고운돋움 | SIL OFL 1.1 (`fonts/OFL-GowunDodum.txt`) |
+| `NanumMyeongjo` | 나눔명조 | SIL OFL 1.1 (`fonts/OFL-NanumMyeongjo.txt`) |
+| `NanumPenScript` | 나눔손글씨 펜 | SIL OFL 1.1 (`fonts/OFL-NanumPenScript.txt`) |
+
+[google/fonts](https://github.com/google/fonts)의 TTF를 글리프 손실 없이 woff2로 변환했습니다.
+
 ## 저장 위치
 
-- 디스크에는 아무것도 저장하지 않습니다. 받은 글귀·배경 URL·출처는 서버 메모리에만 잠시 보관하며, 코어를 다시 시작하면 새로 받습니다.
+- 포함 글꼴 복사 외에는 디스크에 아무것도 저장하지 않습니다. 받은 글귀·배경 URL·출처는 서버 메모리에만 잠시 보관하며, 코어를 다시 시작하면 새로 받습니다.
 - 코어 DB에는 공급원·배경·글꼴 같은 표시 설정만 저장합니다.
 
 ## 공급원과 이용 조건

@@ -2,8 +2,15 @@
 from flask import has_request_context, request, session
 from plugins.metadata.base import BaseMetadataProvider
 
-PLUGIN_VERSION = '1.2.2'
+PLUGIN_VERSION = '1.3.0'
 SESSIONS = ('general', 'adult', 'audiobook', 'video')
+
+try:
+    # 플러그인을 불러올 때 포함 글꼴을 코어 글꼴 목록에 넣는다(이미 있으면 건너뜀).
+    from .quote_fonts import install_fonts
+    install_fonts()
+except Exception:
+    pass
 
 
 class GoodQuotesMetadataProvider(BaseMetadataProvider):
