@@ -6,7 +6,7 @@ BookOasis 홈 화면에 **좋은 글귀**와 **배경 이미지**를 보여주�
 | 항목 | 내용 |
 | --- | --- |
 | 플러그인 ID | `good_quotes` |
-| 버전 | 1.3.0 |
+| 버전 | 1.4.0 |
 | 지원 세션 | 일반·성인 도서, 오디오북, 비디오 |
 | 외부 의존성 | 없음 (표준 라이브러리 + 코어 Flask) |
 | API 키 | 필요 없음 |
@@ -15,6 +15,8 @@ BookOasis 홈 화면에 **좋은 글귀**와 **배경 이미지**를 보여주�
 ## 기능
 
 - **글귀** — 한국어는 [Korean Advice API](https://github.com/gwongibeom/korean-advice-open-api), 영어는 ZenQuotes(기본 켜짐)·PositiveQuotation에서 받습니다. 모두 키가 필요 없습니다. 둘 다 표시할 때는 가중치(기본 60:35:5)로 섞습니다. 공급원이 모두 실패하면 내장 문구를 표시합니다.
+- **날씨 연동 배경 (기본)** — [Open-Meteo](https://open-meteo.com/)(키 불필요, CC BY 4.0)로 설정한 지역(기본 **광주광역시**)의 현재 날씨를 30분마다 확인합니다. 맑음·흐림·비·눈·안개·뇌우와 낮·밤에 맞는 사진을 Wikimedia Commons 품질 사진과 시카고 미술관 명화에서 찾고, 날씨가 바뀌면 변경 주기와 상관없이 바로 배경을 바꿉니다. 날씨를 받지 못하면 일반 배경으로 넘어갑니다.
+- **날씨 표시** — 위젯 왼쪽 아래에 `🌧️ 광주 14° · 비`처럼 현재 날씨와 기온을 표시합니다. 설정에서 끌 수 있습니다.
 - **배경 이미지** — API 키가 필요 없는 5곳(Bing 오늘의 이미지, Wikimedia Commons 오늘의 사진, Art Institute of Chicago, NASA APOD, Lorem Picsum) 중 하나를 고르거나 **5곳 무작위**(기본)로 섞어 씁니다. 그라데이션만 쓸 수도 있습니다. 배경은 1~24시간(기본 3시간)마다 바뀌고, 무작위 모드에서는 응답하지 않는 곳을 건너뜁니다.
 - **위젯 도구** — 다른 글귀, 언어 전환(`En`은 영어 글귀, `한`은 한국어 글귀, `En.한`은 둘을 섞어 받음), 배경 변경, 출처 보기 버튼이 있습니다. 배경을 그라데이션으로 두면 배경 변경 버튼은 숨겨집니다.
 - **글꼴** — 한국어·영어·저자의 글꼴과 크기를 각각 고릅니다. 고운바탕·고운돋움·나눔명조·나눔손글씨 펜 4종이 포함되어 있고, 코어에 넣은 다른 글꼴도 고를 수 있습니다. 긴 문구는 카드 높이에 맞게 자동으로 줄입니다.
@@ -31,6 +33,7 @@ plugins/metadata/good_quotes/
   quote_http.py
   quote_media.py
   quote_fonts.py
+  quote_weather.py
   fonts/
   VERSION
   dashboard.html
@@ -79,6 +82,7 @@ Detail Studio와 함께 설치해도 됩니다. 두 플러그인은 설정과 �
 | Wikimedia Commons 오늘의 사진 | 엄선 사진 배경 | 사진마다 다른 자유 라이선스(CC BY-SA 등) · 출처 표시 |
 | Art Institute of Chicago | 공개 영역 명화 배경 | [CC0](https://www.artic.edu/open-access/open-access-images) · [API](https://api.artic.edu/docs/) |
 | NASA APOD | 천체 사진 배경 (공용 `DEMO_KEY`) | NASA 사진은 공개 영역, 일부는 저작권자 표기 · [APOD](https://apod.nasa.gov/) |
+| Open-Meteo | 현재 날씨·지역 검색 | [CC BY 4.0](https://open-meteo.com/en/license) · 비상업적 무료 |
 | Lorem Picsum | 무작위 사진 배경 | Unsplash 사진 · [Unsplash License](https://unsplash.com/license) |
 
 ZenQuotes·PositiveQuotation은 설정에서 이용 조건 확인 스위치를 켜야 동작합니다.

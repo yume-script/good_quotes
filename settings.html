@@ -19,7 +19,7 @@
     <div class="gq-quote-appearance">
     <div class="gq-quote-setting-grid">
       <label>기본 언어<select name="quote_language"><option value="both">한·영 병기</option><option value="ko">한국어만</option><option value="en">영어만</option></select></label>
-      <label>배경 사진<select name="background_source"><option value="random">5곳 무작위</option><option value="bing">Bing 오늘의 이미지</option><option value="wikimedia">Wikimedia Commons 오늘의 사진</option><option value="artic">Art Institute of Chicago · 명화(CC0)</option><option value="nasa">NASA 오늘의 천체사진</option><option value="picsum">Lorem Picsum · 무작위 사진</option><option value="gradient">그라데이션</option></select></label>
+      <label>배경 사진<select name="background_source"><option value="weather">날씨 연동 · 현재 날씨에 맞는 사진</option><option value="random">5곳 무작위</option><option value="bing">Bing 오늘의 이미지</option><option value="wikimedia">Wikimedia Commons 오늘의 사진</option><option value="artic">Art Institute of Chicago · 명화(CC0)</option><option value="nasa">NASA 오늘의 천체사진</option><option value="picsum">Lorem Picsum · 무작위 사진</option><option value="gradient">그라데이션</option></select></label>
       <label>한국어 글꼴<select name="quote_font" aria-describedby="gq-quote-font-status"><option value="">코어 글꼴 상속</option></select></label>
       <label>한국어 글자 크기 · px<span style="display:flex;align-items:center;gap:10px"><input type="range" data-quote-font-size min="16" max="96" step="1" value="32" aria-label="한국어 글자 크기 슬라이더" style="flex:1;width:0"><input name="quote_font_size" type="number" min="16" max="96" step="1" value="32" aria-label="한국어 글자 크기 픽셀" style="width:76px"></span></label>
       <label>영어 글꼴<select name="quote_en_font" aria-describedby="gq-quote-font-status"><option value="">코어 글꼴 상속</option></select></label>
@@ -35,6 +35,11 @@
       <p class="gq-quote-preview-help">선택한 설정 크기입니다. 홈 위젯에서는 공간에 맞춰 줄어들 수 있습니다.</p>
     </aside>
     </div>
+    <div class="gq-quote-setting-grid">
+      <label>날씨 지역<input name="weather_city" type="text" maxlength="60" value="광주" placeholder="예: 광주, 서울, 부산, Tokyo" aria-describedby="gq-weather-help"></label>
+      <label class="gq-quote-confirm" style="flex-direction:row;align-items:center;align-self:end;min-height:40px"><input type="checkbox" role="switch" name="weather_display" checked> 위젯에 현재 날씨와 기온 표시</label>
+    </div>
+    <p id="gq-weather-help">날씨는 <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>(API 키 불필요, CC BY 4.0)에서 30분마다 확인합니다. 배경을 ‘날씨 연동’으로 두면 맑음·흐림·비·눈·안개·뇌우와 낮·밤에 맞는 사진을 Wikimedia Commons 품질 사진과 시카고 미술관 명화에서 찾고, 날씨가 바뀌면 바로 배경을 바꿉니다. ‘광주’는 광주광역시입니다. 다른 지역은 도시 이름(한글·영문)을 입력하고, 공급원 상태 확인에서 찾은 지역과 날씨를 확인하세요.</p>
     <label>배경 자동 변경 주기 · 시간<input name="photo_refresh_hours" type="number" min="1" max="24" step="1" value="3" aria-describedby="gq-photo-refresh-help" style="width:76px"></label>
     <p id="gq-photo-refresh-help">배경 사진 공급원은 모두 API 키가 필요 없습니다. 문구 새로고침은 배경을 유지하고, 배경 변경 버튼은 즉시 새 사진을 받습니다. 자동 변경은 1~24시간, 기본 3시간입니다. 사진 출처와 이용 조건은 위젯의 정보 아이콘에서 확인할 수 있습니다.</p>
     <p>Bing 이미지는 개인 이용 범위의 배경화면이며, Wikimedia Commons 사진은 각 라이선스(CC BY-SA 등)에 따라 출처를 표시합니다. NASA는 가입 없이 쓰는 공용 키(DEMO_KEY)를 사용합니다.</p>
