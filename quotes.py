@@ -1,10 +1,9 @@
-# 한국어·영어 공급원을 가중치로 선택하고 저장된 번역·캐시·출처를 관리합니다.
+# 한국어·영어 공급원을 가중치로 선택하고 메모리 캐시·출처를 관리합니다.
 from collections import OrderedDict
 import hashlib
 import json
 import random
 import re
-import sqlite3
 import threading
 import time
 
@@ -15,7 +14,7 @@ WEIGHTS = (60, 35, 5)
 LABELS = ('Korean Advice API', 'ZenQuotes API', 'PositiveQuotation')
 QUOTE_FIELDS = ('id', 'provider', 'text_en', 'text_ko', 'original_language', 'author', 'author_profile',
                 'tags', 'fingerprint', 'provider_url', 'original_source_url', 'original_source_title',
-                'translation_status', 'translation_provider', 'translated_at', 'review_status',
+                'translation_status', 'review_status',
                 'rights_status', 'rights_evidence_url', 'provider_license', 'fetched_at')
 _runtime = OrderedDict()
 _lock = threading.RLock()
@@ -58,8 +57,8 @@ def number(value, default, low=0, high=100):
 
 
 class QuoteService:
-    def __init__(self, store, config, *, fetch=fetch_json, clock=time.time, rng=random):
-        self.store, self.config = store, config if isinstance(config, dict) else {}
+    def __init__(self, config, *, fetch=fetch_json, clock=time.time, rng=random):
+        self.config = config if isinstance(config, dict) else {}
         self.fetch, self.clock, self.rng = fetch, clock, rng
         signature = hashlib.sha256(json.dumps(self.config, sort_keys=True).encode()).hexdigest()
         with _lock:
@@ -67,17 +66,6 @@ class QuoteService:
             _runtime.move_to_end(signature)
             while len(_runtime) > 16:
                 _runtime.popitem(last=False)
-
-    def load(self):
-        value = self.store.load()
-        if not isinstance(value, dict) or not all(isinstance(value.get(key, []), list) for key in ('quotes', 'photos', 'audit')):
-            raise ValueError('글귀 저장소 형식을 확인해 주세요.')
-        return value
-
-    def save(self, data):
-        if len(json.dumps(data).encode()) > 8 * 1024 * 1024:
-            raise ValueError('글귀 저장소는 8MB 이하여야 합니다.')
-        self.store.save(data)
 
     def state(self, provider):
         return self.runtime['states'].setdefault(provider, {'failures': 0, 'until': 0, 'calls': 0,
@@ -166,49 +154,7 @@ class QuoteService:
             pool = [self.normalize_remote(provider, data.get('data'))]
         else:
             raise ValueError('지원하지 않는 글귀 공급원입니다.')
-        # 캐시에는 원문만 두고 매번 최신 저장 번역을 병합한다.
-        with _lock:
-            data = self.load()
-            rows = data.setdefault('quotes', [])
-            existing = {row.get('id'): row for row in rows if isinstance(row, dict)}
-            result, changed = [], False
-            for item in pool:
-                old = existing.get(item['id'])
-                if old and all(old.get(key) == item[key] for key in ('provider', 'fingerprint', 'text_en')):
-                    result.append(dict(old))
-                else:
-                    if old:
-                        rows[rows.index(old)] = dict(item)
-                    else:
-                        rows.append(dict(item))
-                    existing[item['id']] = item
-                    result.append(dict(item))
-                    changed = True
-            if changed:
-                self.save(data)
-            return result
-
-    def prepare_translation_sources(self):
-        errors = []
-        for provider, prefix in (('zenquotes', 'zen'), ('positivequotation', 'positive')):
-            if not enabled(self.config, prefix + '_enabled') or not enabled(self.config, prefix + '_terms'):
-                continue
-            state = self.state(provider)
-            if state['until'] > self.clock():
-                errors.append({'provider': provider, 'message': '공급원 요청 대기 중입니다.',
-                               'retry_after': max(1, int(state['until'] - self.clock()))})
-                continue
-            try:
-                self.remote_quote(provider)
-                state['failures'] = 0
-            except (ValueError, OSError, TypeError, KeyError, IndexError, sqlite3.Error) as error:
-                state['failures'] += 1
-                state['last_code'] = getattr(error, 'status', 0)
-                delay = max(getattr(error, 'retry_after', 0), 300 if state['failures'] >= 3 else 30)
-                state['until'] = self.clock() + delay
-                errors.append({'provider': provider, 'message': '영문 글귀를 준비하지 못했습니다. 잠시 후 다시 실행해 주세요.',
-                               'retry_after': delay})
-        return {'errors': errors}
+        return [dict(item) for item in pool]
 
     def normalize_remote(self, provider, value):
         if not isinstance(value, dict):
@@ -253,7 +199,7 @@ class QuoteService:
                 state['failures'] = 0
                 state['displayed'] += 1
                 return dict(selected)
-            except (ValueError, OSError, TypeError, KeyError, IndexError, sqlite3.Error) as error:
+            except (ValueError, OSError, TypeError, KeyError, IndexError) as error:
                 state['failures'] += 1
                 state['last_code'] = getattr(error, 'status', 0)
                 delay = max(getattr(error, 'retry_after', 0), 300 if state['failures'] >= 3 else 30)

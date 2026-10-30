@@ -105,8 +105,7 @@
     select.addEventListener('change', updateFont);
     updateSize(); updateFont();
   }
-  let busy = false, stopRequested = false;
-  const translationStop = query('[data-quote-translation-stop]'), translationStatus = query('[data-quote-translation-status]');
+  let busy = false;
   async function action(action_id, context = {}) {
     const {state} = await import('/static/js/state.js');
     const response = await fetch('/api/media/context-menu/book/plugins/action', {
@@ -118,84 +117,13 @@
     if (!response.ok || !result.success) throw new Error(result.error || '글귀 작업에 실패했습니다.');
     return result;
   }
-  async function perform(job, stoppable = false) {
+  async function perform(job) {
     if (busy) return;
     busy = true; message.textContent = '처리 중입니다.';
     panel.querySelectorAll('button').forEach(button => button.disabled = true);
-    translationStop.disabled = !stoppable;
     try { await job(); } catch (error) { message.textContent = error.message || '입력과 연결 상태를 확인해 주세요.'; }
-    finally { busy = false; if (panel.isConnected) { panel.querySelectorAll('button').forEach(button => button.disabled = false); translationStop.disabled = true; } }
+    finally { busy = false; if (panel.isConnected) { panel.querySelectorAll('button').forEach(button => button.disabled = false); } }
   }
-  function translationInfo(result) {
-    const count = value => Number(value || 0).toLocaleString('ko-KR');
-    query('[data-quote-translation-target]').textContent = `대상 ${count(result.pending_count)}건 · 예상 ${count(result.characters)}자`;
-    query('[data-quote-translation-usage]').textContent = result.usage
-      ? `마지막 조회 사용량 ${count(result.usage.used)} / ${count(result.usage.limit)}자 · 잔여 ${count(result.usage.remaining)}자`
-      : 'DeepL 사용량을 확인하지 못했습니다. 저장된 API 키와 연결 상태를 확인하세요.';
-  }
-  async function translate(run) {
-    if (busy) return;
-    stopRequested = false;
-    await perform(async () => {
-      try {
-        translationStatus.textContent = '번역 대상과 사용량을 확인하고 있습니다.';
-        const snapshot = await action('quotes_translation_status', run ? {} : {refresh_sources: true});
-        if (!panel.isConnected) return;
-        translationInfo(snapshot);
-        const sourceErrors = (snapshot.errors || []).map(error =>
-          `${({zenquotes: 'ZenQuotes', positivequotation: 'PositiveQuotation'})[error.provider] || error.provider} · ${error.message}` +
-          (error.retry_after ? ` ${error.retry_after}초 뒤 재시도하세요.` : '')).join(' / ');
-        const preparationError = sourceErrors ? `영문 공급원 준비 실패 · ${sourceErrors} ` : '';
-        if (!snapshot.configured) { translationStatus.textContent = preparationError + 'DeepL API 키를 입력한 뒤 아래 설정 저장 버튼을 눌러 주세요.'; return; }
-        if (!run) {
-          translationStatus.textContent = preparationError
-            ? preparationError + '공급원 설정과 연결 상태를 확인한 뒤 대상 확인을 다시 눌러 주세요.'
-            : '대상 확인을 마쳤습니다. 미번역 일괄 번역 버튼으로 시작하세요.';
-          return;
-        }
-        const ids = snapshot.pending_ids;
-        const progress = query('[data-quote-translation-progress]');
-        progress.max = Math.max(1, ids.length); progress.value = 0;
-        let translated = 0, skipped = 0, failed = 0;
-        query('[data-quote-translation-progress-text]').textContent = `진행 0 / ${ids.length}건`;
-        if (!ids.length) { translationStatus.textContent = preparationError || '번역할 미번역 문구가 없습니다. 영문 공급원 설정을 저장한 뒤 대상 확인을 눌러 문구를 준비하세요.'; return; }
-        translationStatus.textContent = '미번역 문구를 번역하고 있습니다.';
-        for (let index = 0; index < ids.length; index += 10) {
-          if (stopRequested || !panel.isConnected) break;
-          const result = await action('quotes_translate', {ids: ids.slice(index, index + 10)});
-          if (!panel.isConnected) return;
-          translated += result.translated; skipped += result.skipped; failed += result.failed;
-          progress.value = translated + skipped + failed;
-          query('[data-quote-translation-progress-text]').textContent = `진행 ${progress.value} / ${ids.length}건 · 번역 ${translated} · 건너뜀 ${skipped} · 실패 ${failed}`;
-          query('[data-quote-translation-target]').textContent = `남은 대상 ${result.remaining}건`;
-          if (result.stopped || result.failed || result.reason) {
-            const reason = {auth: 'DeepL API 키와 계정 이용 권한을 확인하세요.', quota: 'DeepL의 남은 번역 문자 한도가 부족합니다.',
-              'rate-limit': 'DeepL 요청이 많아 잠시 대기해야 합니다.', network: 'DeepL 연결에 실패했습니다.',
-              response: 'DeepL 응답 형식이 올바르지 않습니다.', storage: '번역 저장에 실패했습니다. 저장소를 확인하세요.',
-              busy: '다른 번역 묶음을 처리 중입니다.', input: '번역 대상 ID는 한 번에 최대 10개여야 합니다.',
-              'not-configured': 'DeepL API 키를 입력하고 설정 저장을 눌러 주세요.'}[result.reason] || result.reason || '번역 실패가 발생했습니다.';
-            translationStatus.textContent = `번역을 중단했습니다. ${reason}` +
-              (result.retry_after ? ` ${result.retry_after}초 뒤 대상 확인 후 다시 시도하세요.` : ' 대상 확인 후 다시 시도하세요.');
-            return;
-          }
-        }
-        if (!panel.isConnected) return;
-        if (stopRequested) { translationStatus.textContent = '중지했습니다. 완료한 묶음은 저장되었으며 다시 실행하면 남은 항목부터 번역합니다.'; return; }
-        const updated = await action('quotes_translation_status');
-        if (!panel.isConnected) return;
-        translationInfo(updated);
-        translationStatus.textContent = `사전 번역을 완료했습니다. 번역 ${translated}건 · 건너뜀 ${skipped}건 · 남은 대상 ${updated.pending_count}건`;
-      } catch (error) {
-        if (panel.isConnected) translationStatus.textContent = `번역 작업을 중단했습니다. ${error.message || '연결 실패입니다.'} 완료된 묶음은 보존되며, 대상 확인 후 다시 시작할 수 있습니다.`;
-      } finally { if (panel.isConnected) message.textContent = translationStatus.textContent; }
-    }, run);
-  }
-  query('[data-quote-translation-check]').addEventListener('click', () => translate(false));
-  query('[data-quote-translation-start]').addEventListener('click', () => translate(true));
-  translationStop.addEventListener('click', () => {
-    stopRequested = true; translationStop.disabled = true;
-    translationStatus.textContent = '중지를 요청했습니다. 진행 중인 묶음이 저장될 때까지 기다려 주세요.';
-  });
   query('[data-quote-refresh]').addEventListener('click', () => perform(async () => {
     const result = await action('quotes_manage');
     if (!panel.isConnected) return;

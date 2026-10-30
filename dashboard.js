@@ -77,9 +77,6 @@
     card.style.setProperty('--quote-smallest-body', `${Math.min(...sizes, 96)}px`);
     query('[data-quote-en]').hidden = selected === 'ko' || !current.text_en;
     query('[data-quote-ko]').hidden = selected === 'en' || !current.text_ko;
-    const automatic = current.translation_status === 'automatic' && selected !== 'en';
-    query('[data-quote-translation]').textContent = automatic ? (current.translation_provider === 'deepl' ? 'DeepL 자동 번역' : '자동 번역') : '';
-    query('[data-quote-translation]').hidden = !automatic;
     reading.scrollTop = 0;
     scheduleFit();
   }
@@ -190,9 +187,6 @@
       ['이용 조건', item.provider_license || (item.rights_evidence_url ? '확인 자료' : item.rights_status === 'original' ? '자체 작성' : '관리자가 확인한 사용 범위'), item.rights_evidence_url],
     ]) {
       const line = document.createElement('p'); line.append(`${label} · `); credit(line, value || '미확인', url); sources.append(line);
-    }
-    if (item.text_ko && item.translation_status === 'automatic' && item.translation_provider === 'deepl') {
-      const line = document.createElement('p'); line.append('자동 번역 · '); credit(line, 'DeepL · deepl.com', 'https://www.deepl.com/'); sources.append(line);
     }
     language ||= ['both', 'ko', 'en'].includes(item.language) ? item.language : 'both';
     displayLanguage();
