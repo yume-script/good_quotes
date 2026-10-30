@@ -2,7 +2,7 @@
 from flask import has_request_context, request, session
 from plugins.metadata.base import BaseMetadataProvider
 
-PLUGIN_VERSION = '1.2.1'
+PLUGIN_VERSION = '1.2.2'
 SESSIONS = ('general', 'adult', 'audiobook', 'video')
 
 
@@ -69,8 +69,8 @@ class GoodQuotesMetadataProvider(BaseMetadataProvider):
             service = self._service(db_type)
             from .quote_media import MediaService
             if action_id == 'quotes_next':
-                return {'success': True, 'item': service.card(context.get('recent', []),
-                                                            include_background=False)}
+                return {'success': True, 'item': service.card(context.get('recent', []), include_background=False,
+                                                            language=context.get('language'))}
             if action_id == 'quotes_background':
                 tags = context.get('tags', [])
                 if not isinstance(tags, list) or len(tags) > 10 or any(not isinstance(tag, str) or len(tag) > 80 for tag in tags):

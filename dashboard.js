@@ -65,12 +65,12 @@
   function displayLanguage() {
     if (!current) return;
     const button = query('[data-quote-language]');
-    const selected = !current.text_en ? 'ko' : !current.text_ko ? 'en' : language;
-    const bilingual = Boolean(current.text_en && current.text_ko);
-    button.textContent = {en: 'En', ko: '한', both: 'En.한'}[selected];
-    button.dataset.language = selected;
-    button.disabled = !bilingual;
-    button.setAttribute('aria-label', `${{en: '영어', ko: '한국어', both: '영어와 한국어'}[selected]} 표시. ${bilingual ? '언어 전환' : '제공된 언어로 표시'}`);
+    // 버튼은 고른 언어를 보여주고, 그 언어가 없는 글귀는 가진 언어로 표시한다.
+    const selected = language === 'en' && current.text_en ? 'en' : language === 'ko' && current.text_ko ? 'ko'
+      : !current.text_en ? 'ko' : !current.text_ko ? 'en' : language;
+    button.textContent = {en: 'En', ko: '한', both: 'En.한'}[language];
+    button.dataset.language = language;
+    button.setAttribute('aria-label', `${{en: '영어', ko: '한국어', both: '영어와 한국어'}[language]} 글귀. 누르면 언어 전환`);
     const sizes = [];
     if (selected !== 'ko' && current.text_en) sizes.push(parseFloat(card.style.getPropertyValue('--quote-en-size')));
     if (selected !== 'en' && current.text_ko) sizes.push(parseFloat(card.style.getPropertyValue('--quote-font-size')));
@@ -212,7 +212,7 @@
         } catch (error) { scheduleBackground(60); throw error; }
       };
       const loadQuote = async () => {
-        const result = await action('quotes_next', {recent, text_only: true});
+        const result = await action('quotes_next', {recent, language, text_only: true});
         if (alive) { render(result.item); if (!deferred) status.textContent = ''; }
       };
       if (deferred) {
@@ -228,8 +228,11 @@
   query('[data-quote-background]').addEventListener('click', () => update({photoOnly: true, force: true}));
   query('[data-quote-language]').addEventListener('click', event => {
     const modes = ['en', 'ko', 'both'];
-    language = modes[(modes.indexOf(event.currentTarget.dataset.language) + 1) % modes.length];
+    language = modes[(modes.indexOf(language) + 1) % modes.length];
     displayLanguage();
+    // 지금 글귀에 고른 언어가 없으면 그 언어의 새 글귀를 받는다.
+    const missing = (language === 'en' && !current?.text_en) || (language === 'ko' && !current?.text_ko);
+    if (missing) update();
   });
   const sourceWrap = query('.gq-quote-sources'), sourcePanel = query('[data-quote-sources]'), sourceButton = query('[data-quote-source-toggle]');
   let sourcePinned = false;

@@ -4,7 +4,7 @@
   if (!panel) return;
   const query = selector => panel.querySelector(selector);
   const message = query('[data-quote-management-status]');
-  const defaults = {korean_enabled: true, korean_weight: config.local_weight ?? 60, zen_weight: 35, positive_weight: 5, quote_language: 'both', quote_font_size: 32, quote_author_font_size: 15, background_source: 'random', photo_refresh_hours: 3,
+  const defaults = {korean_enabled: true, zen_enabled: true, zen_terms: true, korean_weight: config.local_weight ?? 60, zen_weight: 35, positive_weight: 5, quote_language: 'both', quote_font_size: 32, quote_author_font_size: 15, background_source: 'random', photo_refresh_hours: 3,
     quote_en_font: config.quote_en_font === undefined ? config.quote_font : config.quote_en_font,
     quote_en_font_size: config.quote_en_font_size === undefined ? config.quote_font_size ?? 32 : 32};
   const fontSelects = [query('[name=quote_font]'), query('[name=quote_en_font]'), query('[name=quote_author_font]')], fontStatus = query('[data-quote-font-status]');

@@ -12,6 +12,9 @@ from .quote_http import fetch_json, public_url
 PROVIDERS = ('korean_advice', 'zenquotes', 'positivequotation')
 WEIGHTS = (60, 35, 5)
 LABELS = ('Korean Advice API', 'ZenQuotes API', 'PositiveQuotation')
+LANGUAGES = ('ko', 'en', 'en')
+# 키가 필요 없는 Korean Advice와 ZenQuotes는 기본으로 켜서 한·영 전환이 바로 동작하게 한다.
+DEFAULT_ON = (True, True, False)
 QUOTE_FIELDS = ('id', 'provider', 'text_en', 'text_ko', 'original_language', 'author', 'author_profile',
                 'tags', 'fingerprint', 'provider_url', 'original_source_url', 'original_source_title',
                 'translation_status', 'review_status',
@@ -89,12 +92,14 @@ class QuoteService:
                 self.runtime['cache'][key] = (self.clock() + ttl, value)
             return value
 
-    def available(self):
+    def available(self, language='both'):
         result = []
         for index, provider in enumerate(PROVIDERS):
+            if language in ('ko', 'en') and LANGUAGES[index] != language:
+                continue
             prefix = ('korean', 'zen', 'positive')[index]
-            active = enabled(self.config, prefix + '_enabled', index == 0)
-            terms = index == 0 or enabled(self.config, prefix + '_terms')
+            active = enabled(self.config, prefix + '_enabled', DEFAULT_ON[index])
+            terms = index == 0 or enabled(self.config, prefix + '_terms', DEFAULT_ON[index])
             value = self.config.get('korean_weight', self.config.get('local_weight')) if index == 0 else self.config.get(prefix + '_weight')
             weight = number(value, WEIGHTS[index])
             if active and terms and weight and self.state(provider)['until'] <= self.clock():
@@ -108,9 +113,9 @@ class QuoteService:
         for index, provider in enumerate(PROVIDERS):
             prefix = ('korean', 'zen', 'positive')[index]
             state = self.state(provider)
-            if not enabled(self.config, prefix + '_enabled', index == 0):
+            if not enabled(self.config, prefix + '_enabled', DEFAULT_ON[index]):
                 status = 'disabled'
-            elif index and not enabled(self.config, prefix + '_terms'):
+            elif index and not enabled(self.config, prefix + '_terms', DEFAULT_ON[index]):
                 status = 'terms-pending'
             elif state['until'] > self.clock():
                 status = 'cooldown'
@@ -182,9 +187,9 @@ class QuoteService:
                 'original_source_url': public_url(source.get('url')), 'original_source_title': str(source.get('title') or '')[:300],
                 'fetched_at': self.clock()}
 
-    def pick(self, recent):
+    def pick(self, recent, language='both'):
         recent = set(value for value in recent[-20:] if isinstance(value, str)) if isinstance(recent, list) else set()
-        candidates = self.available()
+        candidates = self.available(language)
         while candidates:
             provider = self.rng.choices([p for p, _ in candidates], weights=[w for _, w in candidates], k=1)[0]
             state = self.state(provider)
@@ -216,7 +221,7 @@ class QuoteService:
                 'original_source_url': '', 'original_source_title': '', 'translation_status': 'original',
                 'review_status': 'approved', 'rights_status': 'original'}
 
-    def card(self, recent, background_only=None, *, initial=False, include_background=True):
+    def card(self, recent, background_only=None, *, initial=False, include_background=True, language=None):
         from .quote_media import GRADIENT, MediaService
         media = MediaService(self)
         if background_only and not initial:
@@ -227,7 +232,7 @@ class QuoteService:
                 quote['tags'] = list(quote['tags'])
             quote.update(background=dict(GRADIENT), deferred=True)
         else:
-            quote = self.pick(recent)
+            quote = self.pick(recent, language if language in ('ko', 'en', 'both') else 'both')
             quote.pop('background', None)
             snapshot = {key: quote[key] for key in QUOTE_FIELDS if key in quote}
             snapshot['tags'] = list(quote.get('tags', []))
@@ -235,7 +240,7 @@ class QuoteService:
             if include_background:
                 quote['background'] = media.background(quote.get('tags', []))
         quote['translation_status'] = quote.get('translation_status', 'reviewed') if quote.get('text_ko') else 'missing'
-        quote['language'] = self.config.get('quote_language', 'both')
+        quote['language'] = language if language in ('ko', 'en', 'both') else self.config.get('quote_language', 'both')
         font = self.config.get('quote_font', '')
         quote['font'] = font if isinstance(font, str) and len(font) <= 200 else ''
         quote['font_size'] = number(self.config.get('quote_font_size'), 32, 16, 96)
