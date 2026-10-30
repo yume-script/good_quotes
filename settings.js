@@ -4,7 +4,7 @@
   if (!panel) return;
   const query = selector => panel.querySelector(selector);
   const message = query('[data-quote-management-status]');
-  const defaults = {korean_enabled: true, korean_weight: config.local_weight ?? 60, zen_weight: 35, positive_weight: 5, quote_language: 'both', quote_font_size: 32, quote_author_font_size: 15, photo_provider: 'gradient', photo_refresh_hours: 3,
+  const defaults = {korean_enabled: true, korean_weight: config.local_weight ?? 60, zen_weight: 35, positive_weight: 5, quote_language: 'both', quote_font_size: 32, quote_author_font_size: 15,
     quote_en_font: config.quote_en_font === undefined ? config.quote_font : config.quote_en_font,
     quote_en_font_size: config.quote_en_font_size === undefined ? config.quote_font_size ?? 32 : 32};
   const fontSelects = [query('[name=quote_font]'), query('[name=quote_en_font]'), query('[name=quote_author_font]')], fontStatus = query('[data-quote-font-status]');
@@ -18,15 +18,6 @@
     if (input.type === 'checkbox') input.checked = [true, 1, '1', 'true', 'on'].includes(value);
     else if (value != null) input.value = String(value);
   }
-  if (config.photo_provider === 'openverse') query('[name=photo_provider]').value = 'gradient';
-  const refreshHours = query('[name=photo_refresh_hours]');
-  const normalizeRefreshHours = () => {
-    const value = refreshHours.value === '' ? 3 : Number(refreshHours.value);
-    refreshHours.value = String(Math.max(1, Math.min(24, Math.round(Number.isFinite(value) ? value : 3))));
-  };
-  refreshHours.addEventListener('change', normalizeRefreshHours);
-  refreshHours.addEventListener('blur', normalizeRefreshHours);
-  normalizeRefreshHours();
   const fontSize = query('[name=quote_font_size]'), fontRange = query('[data-quote-font-size]');
   const enSize = query('[name=quote_en_font_size]'), enRange = query('[data-quote-en-font-size]');
   const authorSize = query('[name=quote_author_font_size]'), authorRange = query('[data-quote-author-font-size]');
